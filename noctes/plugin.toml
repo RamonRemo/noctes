@@ -1,6 +1,6 @@
-id          = "remo/noctes"
+id          = "noctes/noctes"
 name        = "Noctes"
-version     = "0.14.0"
+version     = "0.15.0"
 plugin_api  = 26
 author      = "remo"
 license     = "MIT"

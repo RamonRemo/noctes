@@ -20,7 +20,7 @@ noctalia.state.watch("noctes.notes", function(value)
 end)
 
 function onClick()
-  noctalia.togglePanel("remo/noctes:panel")
+  noctalia.togglePanel("noctes/noctes:panel")
 end
 
 count = 0

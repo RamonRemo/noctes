@@ -115,7 +115,7 @@ local function refreshBoundKeys()
     -- looks like it exists nowhere.
     local isPostit = {}
     for id, body in string.gmatch(contents, "%[desktop_widgets%.widget%.([%w%-]+)%]([^%[]*)") do
-      if string.find(body, 'type = "remo/noctes:note"', 1, true) then
+      if string.find(body, 'type = "noctes/noctes:note"', 1, true) then
         isPostit[id] = string.match(body, 'output%s*=%s*"([^"]*)"') or "?"
       end
     end
@@ -562,11 +562,11 @@ noctalia.state.watch("noctes.cmd", function(cmd)
 end)
 
 -- IPC, for keybinds and scripts:
---   noctalia msg plugin remo/noctes:service all new ["text"]
---   noctalia msg plugin remo/noctes:service all desk
---   noctalia msg plugin remo/noctes:service all move
---   noctalia msg plugin remo/noctes:service all open <key>
---   noctalia msg plugin remo/noctes:service all reload
+--   noctalia msg plugin noctes/noctes:service all new ["text"]
+--   noctalia msg plugin noctes/noctes:service all desk
+--   noctalia msg plugin noctes/noctes:service all move
+--   noctalia msg plugin noctes/noctes:service all open <key>
+--   noctalia msg plugin noctes/noctes:service all reload
 function onIpc(event, payload)
   if event == "new" then
     addNote(nil, payload, nil, nil)

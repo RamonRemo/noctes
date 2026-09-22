@@ -1,6 +1,6 @@
 # noctes
 
-A Noctalia plugin source holding one plugin: **`remo/noctes`**, sticky notes
+A Noctalia plugin source holding one plugin: **`noctes/noctes`**, sticky notes
 that live on the desktop rather than in a panel.
 
 ![Post-its on the desktop](docs/desktop.png)
@@ -15,8 +15,8 @@ This directory is a plugin *source*, the same shape Noctalia's own plugin repos
 have: a hand-written `catalog.toml` at the root and one directory per plugin.
 
 ```sh
-noctalia msg plugins source add noctes-dev path ~/Projetos/noctes
-noctalia msg plugins enable remo/noctes
+noctalia msg plugins source add noctes path ~/Projetos/noctes
+noctalia msg plugins enable noctes/noctes
 ```
 
 ## Getting the first one up
@@ -45,7 +45,7 @@ whole interface.
 Straight to a post-it without touching the editor at all, if you prefer:
 
 ```sh
-noctalia msg plugin remo/noctes:service all desk
+noctalia msg plugin noctes/noctes:service all desk
 ```
 
 `.luau` edits hot-reload. Manifest edits need `noctalia msg config-reload`, and
@@ -119,7 +119,7 @@ desktop widget already on screen: two sheets can end up on the new code and two
 on the old, with no error anywhere. After a code change:
 
 ```sh
-noctalia msg plugins disable remo/noctes && noctalia msg plugins enable remo/noctes
+noctalia msg plugins disable noctes/noctes && noctalia msg plugins enable noctes/noctes
 ```
 
 Toggling a plugin *setting* is different - that repaints everything at once, and

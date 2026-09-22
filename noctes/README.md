@@ -4,7 +4,7 @@ Sticky notes pinned to the desktop, with a bar widget and a panel for editing.
 
 | | |
 | --- | --- |
-| Id | `remo/noctes` |
+| Id | `noctes/noctes` |
 | Entries | Service: `service`; bar widget: `bar`; panel: `panel`; desktop widget: `note` |
 
 ## Paper: dynamic by default, fixed on request
@@ -38,7 +38,7 @@ files is different: a hot reload does not always reach every desktop widget
 already on screen, and a sheet left on the old code keeps its old look until
 
 ```sh
-noctalia msg plugins disable remo/noctes && noctalia msg plugins enable remo/noctes
+noctalia msg plugins disable noctes/noctes && noctalia msg plugins enable noctes/noctes
 ```
 
 ## Adding one
@@ -49,7 +49,7 @@ the panel's list is therefore something that exists on screen, and deleting a
 note takes its sheet off the desktop too. Same thing over IPC:
 
 ```sh
-noctalia msg plugin remo/noctes:service all desk
+noctalia msg plugin noctes/noctes:service all desk
 ```
 
 The desktop-widget editor still works, and `tools/noctes-scatter` fixes up what
@@ -170,12 +170,11 @@ otherwise floats over the desk being rearranged. Press Done in the editor when
 finished; leaving it writes `settings.toml`, which is what the scatter watcher
 listens for.
 
-Each row says which output its sheet is on, or *not on screen* for a note that
-has no widget - a post-it on the other monitor is the usual reason a note looks
-like it exists nowhere. A row with no sheet gets a board button that sticks it
-to the desktop.
+The toolbar says which output the sheet is on, or *not on screen* for a note
+with no widget - a post-it on the other monitor is the usual reason a note looks
+like it exists nowhere - and offers a board button that sticks it back.
 
-The full CRUD surface: create, retitle, edit the body, recolor and delete. The editor has its own New button, so a run of notes does not
+One view, the editor: retitle, edit the body, recolor, stick a loose note to the desktop, delete. There is no list - the post-its are already on screen, and picking one means clicking it. The editor has its own New button, so a run of notes does not
 need a trip back to the list between each one. There is no pinning: every note
 is a sheet at a fixed place on the desktop already. Edits autosave about a second after typing stops, and on
 close, and the Save button writes and closes the panel. Autosave will not empty a note that had text in it - `ui.input` is
@@ -186,19 +185,19 @@ clears a note's color and lets the post-it derive one from its key.
 ### IPC
 
 ```sh
-noctalia msg plugin remo/noctes:service all desk           # note + desktop widget
-noctalia msg plugin remo/noctes:service all move           # toggle the widget editor
-noctalia msg plugin remo/noctes:service all new            # empty note
-noctalia msg plugin remo/noctes:service all new "buy milk" # note with a body
-noctalia msg plugin remo/noctes:service all open work      # select the "work" note,
+noctalia msg plugin noctes/noctes:service all desk           # note + desktop widget
+noctalia msg plugin noctes/noctes:service all move           # toggle the widget editor
+noctalia msg plugin noctes/noctes:service all new            # empty note
+noctalia msg plugin noctes/noctes:service all new "buy milk" # note with a body
+noctalia msg plugin noctes/noctes:service all open work      # select the "work" note,
                                                            # creating it if absent
-noctalia msg plugin remo/noctes:service all reload         # re-read notes.json
+noctalia msg plugin noctes/noctes:service all reload         # re-read notes.json
 ```
 
 `new` and `open` both select the note, so opening the panel afterwards lands
 straight in its editor. That makes a keybind of
-`noctalia msg plugin remo/noctes:service all new` plus
-`noctalia msg panel-open remo/noctes:panel` a one-shot quick-note.
+`noctalia msg plugin noctes/noctes:service all new` plus
+`noctalia msg panel-open noctes/noctes:panel` a one-shot quick-note.
 
 ## tools/noctes-scatter
 
@@ -245,7 +244,7 @@ on, where a fullscreen window would hide a new post-it immediately.
 ## Storage
 
 `notes.json` in the folder given by the `save_path` setting, or in the plugin's
-own data directory (`~/.local/state/noctalia/plugins/data/remo/noctes`) when
+own data directory (`~/.local/state/noctalia/plugins/data/noctes/noctes`) when
 that setting is empty. The file is a plain JSON array of notes, safe to edit by
 hand while Noctalia is not running, or followed by an IPC `reload`.
 

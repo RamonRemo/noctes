@@ -1,14 +1,15 @@
 --!nonstrict
 -- Noctes panel - the only surface that can take keyboard focus, so it owns all
--- typing. A desktop post-it hands a note over by setting noctes.editing.
+-- typing. A post-it hands its note over by setting noctes.editing.
 --
--- Two views:
---   list -> every post-it, click to edit, delete
---   edit -> title + body inputs, color picker, delete
+-- One view: the editor. There was a list too, and it was in the way - the
+-- notes are already on screen, and picking one means clicking it, not scrolling
+-- a second copy of the same wall. What the list did that the editor now does:
+-- new, delete, and sticking a note that has no sheet.
 --
 -- Edits are kept as a local draft and flushed to the service on a second-tick
--- debounce, on view changes, and on close, so typing never round-trips through
--- state on every keystroke.
+-- debounce, on close, and on Save, so typing never round-trips through state on
+-- every keystroke.
 
 local colors = require("./colors.luau")
 
@@ -17,7 +18,6 @@ local FLUSH_AFTER_MS = 1200
 local notes = {}
 local boundKeys = {}
 local themeColors = false
-local view = "list"
 local currentId = ""
 local draftTitle = ""
 local draftContent = ""
@@ -26,17 +26,14 @@ local lastChangeMs = 0
 local pendingDelete = ""
 
 -- The seed a note's generated look hangs off: its key when it has one, so the
--- panel preview matches the desktop post-it, else its id.
+-- chips match the sheet on the desktop, else its id.
 local function seedOf(note)
-  local key = note.key or ""
-  return key ~= "" and key or note.id
+  return (note.key or "") ~= "" and note.key or note.id
 end
 
--- A note is "on the wall" when some desktop widget is bound to its key. The
--- widgets live in Noctalia's settings, so the service reads them back and
+-- The output the note's post-it sits on, or nil when no widget is bound to it.
+-- The widgets live in Noctalia's settings, so the service reads them back and
 -- publishes the list.
--- Returns the output the note's post-it sits on, or nil when no widget is
--- bound to it.
 local function stuckOn(note)
   local key = note.key or ""
   if key == "" then
@@ -57,6 +54,13 @@ local function findNote(id)
     end
   end
   return nil
+end
+
+-- Whatever the panel should be showing: the note that was clicked, or the most
+-- recently touched one when the panel was opened from the bar with nothing
+-- selected. notes arrives newest first.
+local function currentNote()
+  return findNote(currentId) or notes[1]
 end
 
 -- `force` is the Save button. Autosave refuses to wipe a note that had text in
@@ -87,8 +91,8 @@ end
 
 local render
 
-local function openEditor(id)
-  if id == currentId and view == "edit" then
+local function openNote(id)
+  if id == currentId then
     return
   end
   flush()
@@ -101,21 +105,11 @@ local function openEditor(id)
   draftContent = note.content or ""
   dirty = false
   pendingDelete = ""
-  view = "edit"
-  render()
-end
-
-local function backToList()
-  flush()
-  view = "list"
-  currentId = ""
-  pendingDelete = ""
-  noctalia.state.set("noctes.editing", "")
   render()
 end
 
 -- New means new post-it: the service creates the note and its desktop widget
--- together, so everything in this list is something that exists on screen.
+-- together, then selects it, so the editor lands on the new sheet.
 local function addPostit()
   noctalia.state.set("noctes.cmd", { op = "spawn_widget" })
 end
@@ -128,8 +122,8 @@ local function moveMode()
   panel.close()
 end
 
--- For notes that predate the widget, or whose post-it was deleted from the
--- desktop-widget editor.
+-- For a note with no sheet of its own: one made before the widget existed, or
+-- one whose post-it was deleted from the widget editor.
 local function stickNote(id)
   noctalia.state.set("noctes.cmd", { op = "stick", id = id })
 end
@@ -137,12 +131,9 @@ end
 local function removeNote(id)
   if currentId == id then
     dirty = false
-  end
-  noctalia.state.set("noctes.cmd", { op = "remove", id = id })
-  if view == "edit" then
-    view = "list"
     currentId = ""
   end
+  noctalia.state.set("noctes.cmd", { op = "remove", id = id })
   pendingDelete = ""
   render()
 end
@@ -151,128 +142,7 @@ local function setColor(id, color)
   noctalia.state.set("noctes.cmd", { op = "set_color", id = id, color = color })
 end
 
--- ── List view ───────────────────────────────────────────────────────────────
-
-local function previewOf(note)
-  local content = noctalia.string.trim(note.content or "")
-  if content == "" then
-    return noctalia.tr("board.empty_note")
-  end
-  return (string.gsub(content, "%s+", " "))
-end
-
-local function listRow(note)
-  local screen = stuckOn(note)
-  local armed = pendingDelete == note.id
-  local hasTitle = (note.title or "") ~= ""
-
-  return ui.row({
-    key = "row-" .. note.id,
-    gap = 8,
-    padding = 8,
-    radius = 10,
-    fill = "surface_container",
-    align = "center",
-    onClick = function()
-      openEditor(note.id)
-    end,
-  }, {
-    ui.box({
-      width = 6,
-      height = 34,
-      radius = 3,
-      fill = colors.swatch(note.color, seedOf(note), themeColors),
-    }),
-    ui.column({ gap = 2, flexGrow = 1 }, {
-      ui.row({ gap = 6, align = "center" }, {
-        ui.label({
-          text = hasTitle and note.title or noctalia.tr("board.untitled"),
-          fontWeight = "semibold",
-          color = hasTitle and "on_surface" or "on_surface/0.6",
-          maxLines = 1,
-        }),
-        -- Which screen the sheet is on, or that it is not on any: a post-it on
-        -- the other monitor is the usual reason a note looks like it is
-        -- nowhere.
-        ui.label({
-          text = screen ~= nil and screen or noctalia.tr("panel.not_on_screen"),
-          fontSize = 10,
-          color = screen ~= nil and "primary" or "on_surface/0.45",
-          maxLines = 1,
-        }),
-      }),
-      ui.label({
-        text = previewOf(note),
-        fontSize = 11,
-        color = "on_surface/0.65",
-        maxLines = 1,
-      }),
-    }),
-    ui.button({
-      key = "stick-" .. note.id,
-      glyph = "layout-board",
-      variant = "secondary",
-      controlSize = "sm",
-      visible = screen == nil,
-      tooltip = noctalia.tr("panel.stick"),
-      onClick = function()
-        stickNote(note.id)
-      end,
-    }),
-    ui.button({
-      key = "del-" .. note.id,
-      glyph = armed and "check" or "trash",
-      variant = armed and "destructive" or "ghost",
-      controlSize = "sm",
-      tooltip = armed and noctalia.tr("panel.delete_confirm") or noctalia.tr("panel.delete"),
-      onClick = function()
-        if armed then
-          removeNote(note.id)
-        else
-          pendingDelete = note.id
-          render()
-        end
-      end,
-    }),
-  })
-end
-
-local function listView()
-  local rows = {}
-  for _, note in ipairs(notes) do
-    table.insert(rows, listRow(note))
-  end
-
-  if #rows == 0 then
-    table.insert(rows, ui.column({ padding = 16, align = "center", gap = 4 }, {
-      ui.glyph({ name = "note", size = 28, color = "on_surface/0.4" }),
-      ui.label({ text = noctalia.tr("panel.empty"), color = "on_surface/0.6" }),
-    }))
-  end
-
-  return ui.column({ gap = 10, flexGrow = 1, align = "stretch" }, {
-    ui.row({ gap = 8, align = "center" }, {
-      ui.label({ text = noctalia.tr("panel.title"), fontSize = 15, fontWeight = "bold", flexGrow = 1 }),
-      ui.button({
-        glyph = "arrows-move",
-        variant = "secondary",
-        controlSize = "sm",
-        tooltip = noctalia.tr("panel.move"),
-        onClick = moveMode,
-      }),
-      ui.button({
-        text = noctalia.tr("panel.new"),
-        glyph = "plus",
-        variant = "primary",
-        controlSize = "sm",
-        onClick = addPostit,
-      }),
-    }),
-    ui.scroll({ gap = 6, flexGrow = 1, align = "stretch" }, rows),
-  })
-end
-
--- ── Edit view ───────────────────────────────────────────────────────────────
+-- ── Pieces ──────────────────────────────────────────────────────────────────
 
 local function colorPicker(note)
   local isAuto = not colors.isKnown(note.color)
@@ -314,6 +184,7 @@ local function colorPicker(note)
       end,
     }))
   end
+
   -- A tooltip would be the obvious place for this, but `tooltip` on a box or a
   -- flex container needs plugin API 32 and this shell caps out below that. A
   -- caption under the chips says the same thing without a hover, and it says it
@@ -328,63 +199,70 @@ local function colorPicker(note)
 
   return ui.column({ gap = 4, align = "stretch" }, {
     ui.row({ gap = 6, align = "center" }, swatches),
+    ui.label({ text = caption, fontSize = 10, color = "on_surface/0.6", maxLines = 2 }),
+  })
+end
+
+local function toolbar(note)
+  local armed = pendingDelete == note.id
+  local screen = stuckOn(note)
+
+  return ui.row({ gap = 6, align = "center" }, {
+    -- Where this sheet is. Blank when it is on a screen, because that is the
+    -- normal case and a badge for it would be noise; loud when it is not,
+    -- because that is the one worth acting on.
     ui.label({
-      text = caption,
+      text = screen ~= nil and screen or noctalia.tr("panel.not_on_screen"),
       fontSize = 10,
-      color = "on_surface/0.6",
-      maxLines = 2,
+      color = screen ~= nil and "on_surface/0.45" or "primary",
+      flexGrow = 1,
+      maxLines = 1,
+    }),
+    ui.button({
+      key = "stick-" .. note.id,
+      glyph = "layout-board",
+      variant = "secondary",
+      controlSize = "sm",
+      visible = screen == nil,
+      tooltip = noctalia.tr("panel.stick"),
+      onClick = function()
+        stickNote(note.id)
+      end,
+    }),
+    ui.button({
+      glyph = "arrows-move",
+      variant = "secondary",
+      controlSize = "sm",
+      tooltip = noctalia.tr("panel.move"),
+      onClick = moveMode,
+    }),
+    ui.button({
+      glyph = "plus",
+      variant = "primary",
+      controlSize = "sm",
+      tooltip = noctalia.tr("panel.new"),
+      onClick = addPostit,
+    }),
+    ui.button({
+      glyph = armed and "check" or "trash",
+      variant = armed and "destructive" or "ghost",
+      controlSize = "sm",
+      tooltip = armed and noctalia.tr("panel.delete_confirm") or noctalia.tr("panel.delete"),
+      onClick = function()
+        if armed then
+          removeNote(note.id)
+        else
+          pendingDelete = note.id
+          render()
+        end
+      end,
     }),
   })
 end
 
-local function editView()
-  local note = findNote(currentId)
-  if note == nil then
-    view = "list"
-    return listView()
-  end
-
-  local armed = pendingDelete == note.id
-
+local function editor(note)
   return ui.column({ gap = 10, flexGrow = 1, align = "stretch" }, {
-    ui.row({ gap = 6, align = "center" }, {
-      ui.button({
-        glyph = "arrow-left",
-        variant = "ghost",
-        controlSize = "sm",
-        onClick = backToList,
-      }),
-      -- No title here: a back arrow, a body full of text inputs and a delete
-      -- button already say what this screen is.
-      ui.spacer({ flexGrow = 1 }),
-      ui.button({
-        glyph = "arrows-move",
-        variant = "secondary",
-        controlSize = "sm",
-        tooltip = noctalia.tr("panel.move"),
-        onClick = moveMode,
-      }),
-      ui.button({
-        glyph = "plus",
-        variant = "primary",
-        controlSize = "sm",
-        tooltip = noctalia.tr("panel.new"),
-        onClick = addPostit,
-      }),
-      ui.button({
-        glyph = armed and "check" or "trash",
-        variant = armed and "destructive" or "ghost",
-        controlSize = "sm",
-        onClick = function()
-          if armed then
-            removeNote(note.id)
-          else
-            pendingDelete = note.id
-            render()
-          end
-        end,
-      }),
-    }),
+    toolbar(note),
     ui.input({
       key = "title-" .. note.id,
       value = draftTitle,
@@ -441,14 +319,26 @@ local function editView()
   })
 end
 
+local function emptyState()
+  return ui.column({ gap = 10, flexGrow = 1, align = "center", justify = "center" }, {
+    ui.glyph({ name = "note", size = 32, color = "on_surface/0.35" }),
+    ui.label({ text = noctalia.tr("panel.empty"), color = "on_surface/0.6" }),
+    ui.button({
+      text = noctalia.tr("panel.new"),
+      glyph = "plus",
+      variant = "primary",
+      controlSize = "sm",
+      onClick = addPostit,
+    }),
+  })
+end
+
 -- ── Wiring ──────────────────────────────────────────────────────────────────
 
 render = function()
-  if view == "edit" then
-    panel.render(ui.column({ padding = 12, gap = 10, flexGrow = 1, align = "stretch" }, { editView() }))
-  else
-    panel.render(ui.column({ padding = 12, gap = 10, flexGrow = 1, align = "stretch" }, { listView() }))
-  end
+  local note = currentNote()
+  local body = note ~= nil and editor(note) or emptyState()
+  panel.render(ui.column({ padding = 12, gap = 10, flexGrow = 1, align = "stretch" }, { body }))
 end
 
 noctalia.state.watch("noctes.notes", function(value)
@@ -466,10 +356,10 @@ noctalia.state.watch("noctes.themeColors", function(value)
   render()
 end)
 
--- The board (and the service, after an add) selects a note here.
+-- A post-it (and the service, after it creates one) selects a note here.
 noctalia.state.watch("noctes.editing", function(value)
   if type(value) == "string" and value ~= "" then
-    openEditor(value)
+    openNote(value)
   end
 end)
 
@@ -478,9 +368,19 @@ function onOpen()
   -- The desktop-widget editor can add or delete post-its behind this plugin's
   -- back, so the bound-key list is re-read every time the panel opens.
   noctalia.state.set("noctes.cmd", { op = "refresh" })
+
   local wanted = noctalia.state.get("noctes.editing")
   if type(wanted) == "string" and wanted ~= "" then
-    openEditor(wanted)
+    openNote(wanted)
+    return
+  end
+
+  -- Opened from the bar with nothing selected: seed the drafts from whatever
+  -- currentNote settles on, or the inputs would show the previous note's text.
+  local note = currentNote()
+  if note ~= nil and note.id ~= currentId then
+    currentId = ""
+    openNote(note.id)
   else
     render()
   end
@@ -490,8 +390,6 @@ function onClose()
   flush()
   noctalia.state.set("noctes.panelOpen", false)
   noctalia.state.set("noctes.editing", "")
-  view = "list"
-  currentId = ""
   pendingDelete = ""
 end
 

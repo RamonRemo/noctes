@@ -2,9 +2,9 @@
 # this file; a local `path` source has no CI, so it is maintained by hand.
 
 [[plugin]]
-id = "remo/noctes"
+id = "noctes/noctes"
 name = "Noctes"
-version = "0.14.0"
+version = "0.15.0"
 updated_at = 1790092241
 added_at = 1790092241
 author = "remo"

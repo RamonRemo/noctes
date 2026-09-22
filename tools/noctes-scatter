@@ -38,7 +38,7 @@ from datetime import date
 from pathlib import Path
 
 SETTINGS = Path.home() / ".local/state/noctalia/settings.toml"
-WIDGET_TYPE = "remo/noctes:note"
+WIDGET_TYPE = "noctes/noctes:note"
 
 # Radians. Enough to read as hand-placed, not enough to look broken.
 MIN_TILT = 0.018
