@@ -1,149 +1,146 @@
-# noctes
+# noctes - stickers for noctalia
 
-A Noctalia plugin source holding one plugin: **`remo/noctes`**, sticky notes
-that live on the desktop rather than in a panel.
+You know the notes. The ones on the fridge, on the edge of a monitor, stuck to a
+book at the page you meant to come back to. You never *open* them. They are
+simply there, in the corner of your eye, until the thing is done and the paper
+comes off.
 
-![Post-its on the desktop](docs/desktop.png)
+Software forgot how to do that. Notes went into apps: a window to raise, a list
+to scroll, a sidebar of folders, a sync indicator. Everything a sticky note is
+not. A sticky note has no inbox. It does not have seventeen of anything. It is a
+square of colored paper with four words on it, stuck somewhere you will look
+anyway.
 
-The plugin's own documentation - what it does, every setting, the IPC commands -
-is [`noctes/README.md`](noctes/README.md). This file covers the repository: how
-to run it, how it is laid out, and the handful of host facts that shaped it.
+That is what this is. Little sheets of paper stuck to your desktop, slightly
+crooked, a strip of tape on top, written in a hand that is not your system font.
+They sit above the wallpaper and below every window, so they are not in the way -
+they are just *there*, waiting for the moment you clear the screen and see them
+again.
 
-## Running it
+And because they live inside noctalia, they take its colors. Change the
+wallpaper, and the whole wall of notes changes with it. One minute a cluster of
+dusty greens, the next a pink one next to a near-black one, matching the picture
+behind them. You do not configure that. It just keeps happening, and it is a
+small delight every time.
 
-This directory is a plugin *source*, the same shape Noctalia's own plugin repos
-have: a hand-written `catalog.toml` at the root and one directory per plugin.
+![noctes on the desktop](docs/hero.jpg)
 
-```sh
-noctalia msg plugins source add noctes path ~/Projetos/noctes
-noctalia msg plugins enable remo/noctes
-```
+## What it is, plainly
 
-## Getting the first one up
+A plugin for [Noctalia](https://noctalia.dev), the Wayland shell. It adds:
 
-A plugin cannot create a desktop widget from nothing, so the very first sheet
-comes from Noctalia's own editor:
+- **stickers on the desktop** - one note per sheet, in a color the shell picks,
+  tilted a couple of degrees so a wall of them never looks like a spreadsheet
+- **a small panel** to write in, which opens when you click a sheet
+- **a bar widget** with the count, in case you like knowing
 
-1. **Settings -> Desktop -> Widgets -> Toggle Editor**, pick **Noctes** from
-   the type list, add one, then press **Done**. It appears plain: square,
-   untilted, sitting in a dark panel.
-2. A second later it is not. Leaving the editor writes `settings.toml`, the
-   watcher in `tools/systemd/` notices, and `noctes-scatter` gives that sheet a
-   random tilt, a key of its own, and no background.
-3. Click it. The panel opens on that note, and **everything else happens from
-   there**: *New* adds the next post-it - note and widget together, already
-   tilted and colored - the move button reopens the widget editor to drag and
-   resize, and the bin deletes the note and takes its sheet off the desktop.
+Notes are plain text in a plain JSON file. Nothing syncs anywhere. Nothing
+phones home. Delete the plugin and your notes are still sitting in a file you
+can read.
 
-So the editor is a one-time errand. After the first sheet, the panel is the
-whole interface.
+## Getting your first sticker up
 
-| The panel | Editing a note |
+This is the one fiddly part, and it only happens once.
+
+A plugin cannot conjure a desktop widget out of nothing - noctalia's own editor
+has to place the first one. So:
+
+1. Open **Settings → Desktop → Widgets → Toggle Editor**.
+2. Pick **Noctes** from the type list and add one.
+3. Press **Done**.
+
+It appears plain at first: square, straight, sitting in a dark panel. Give it a
+second. Closing the editor is the cue for a small watcher to step in, tilt the
+sheet, give it a color and take the panel away.
+
+From then on the editor is done with. **Click the sheet.** Everything else lives
+in the panel that opens:
+
+| Writing in a note | |
 | --- | --- |
-| ![Note list](docs/panel.png) | ![Note editor](docs/editor.png) |
+| ![The note editor](docs/editor.png) | Type a title, type a body, pick a color. **+** makes another sticker - note and sheet together, already tilted and colored. The arrows hand the desk back to noctalia's widget editor so you can drag things around. The bin takes the note and its sheet off the wall together. |
 
-Straight to a post-it without touching the editor at all, if you prefer:
+If you would rather skip the editor entirely on the first run, one command does
+the same thing:
 
 ```sh
 noctalia msg plugin remo/noctes:service all desk
 ```
 
-`.luau` edits hot-reload. Manifest edits need `noctalia msg config-reload`, and
-in practice a full `disable` + `enable` (see *Hot reload is partial* below).
-`noctalia plugins lint noctes` validates the manifest against the code offline.
-
-## Layout
-
-```
-catalog.toml                 index of this source, hand-maintained (CI writes it upstream)
-noctalia.d.luau              plugin API type definitions, gitignored; fetch from official-plugins
-tools/
-  noctes-scatter             tilt/key/unbackground post-its added through the widget editor
-  systemd/                   path unit that runs the above when settings.toml changes
-noctes/
-  plugin.toml                manifest: entries and settings
-  service.luau               owns the note list and the notes.json file
-  note.luau                  [[desktop_widget]] - one post-it per instance
-  panel.luau                 [[panel]] - the only surface that takes the keyboard
-  bar.luau                   [[widget]] - count, opens the panel
-  colors.luau                paper colors, palette roles, the seeded look
-  tools/noctes-widget        adds and removes desktop widgets in settings.toml
-  translations/              en, pt-BR
-  PatrickHand-Regular.ttf    bundled handwriting font (SIL OFL)
-```
-
-## Host facts worth knowing
-
-Things about Noctalia 5 that cost time to discover, and that the code is shaped
-around. They are documented where they bite, in the file that has to live with
-them; collected here because they are not guessable.
-
-**A desktop widget has no identity.** The `desktopWidget` API is `render`,
-`setWantsSecondTicks` and `setNeedsFrameTick` - no instance id, no output name.
-Two sheets run the same code with nothing to tell themselves apart, so the only
-thing that can bind one widget to one note is a setting. That is what the `key`
-setting is, and why it exists at all.
-
-**Three fields a plugin cannot reach.** A desktop widget's `rotation`, its host
-background panel, and the widget entry itself are all host state in
-`settings.toml`. Nothing in the plugin API writes them, so `tools/noctes-widget`
-and `tools/noctes-scatter` edit that file, back it up, run
-`noctalia config validate`, and restore on failure. An unknown key inside a
-widget's settings table does not fail gracefully: it breaks the parse and takes
-down the whole shell - bar, dock, wallpaper - until the file is fixed. Validate
-before reloading, always.
-
-**`rotation` is radians**, not degrees. `0.05` is about three degrees.
-
-**A numeric setting without `step` gets 1.0.** Not "continuous" - 1.0. A float
-slider from 0 to 1 then has exactly two reachable values, and the setting looks
-broken rather than coarse. Declare `step` on every `float`, finer than the
-range, with the default landing on a boundary.
-
-**A plugin widget is centered at its natural size** inside the widget box, so it
-carries its own size; `flexGrow` does not stretch it to the box.
-
-**`ui.box` needs both a width and a height** or it paints nothing at all, with
-no warning. That one hid the drop shadow for several versions. `softness` on a
-box feathers its edge, which is what makes a hand-drawn shadow read as a shadow
-instead of a printed stripe.
-
-**The palette is fourteen roles**, the ones in Noctalia's theme files:
-`primary`, `on_primary`, `secondary`, `tertiary`, `error`, `surface`,
-`on_surface`, `surface_variant`, `on_surface_variant`, `outline`, `shadow` and
-friends. The Material *container* roles do not exist here, and naming one paints
-transparent - again silently. Hex takes its alpha as `#rrggbbaa`; only role
-names take the `role/0.6` form.
-
-**This build caps below plugin API 32.** A manifest declaring 32 is marked
-`incompatible` and disabled, so `tooltip` on a box or flex container - API 32 -
-is out of reach. Only `ui.button` has a tooltip.
-
-**Hot reload is partial.** Editing a `.luau` does not reliably reach every
-desktop widget already on screen: two sheets can end up on the new code and two
-on the old, with no error anywhere. After a code change:
+## Installing it
 
 ```sh
-noctalia msg plugins disable remo/noctes && noctalia msg plugins enable remo/noctes
+git clone https://github.com/RamonRemo/noctes ~/Projetos/noctes
+noctalia msg plugins source add noctes path ~/Projetos/noctes
+noctalia msg plugins enable remo/noctes
 ```
 
-Toggling a plugin *setting* is different - that repaints everything at once, and
-is the reliable path.
-
-**The widget editor holds new widgets in memory** until it closes. A widget
-added there is not in `settings.toml`, and nothing that reads the file can see
-it, until Done is pressed.
-
-## Editor setup
-
-`noctalia.d.luau` declares the whole plugin API. It is gitignored; fetch it into
-the repo root, where `.luaurc` and luau-lsp expect it:
+Then the watcher that tidies up sheets added through the widget editor:
 
 ```sh
-curl -O https://raw.githubusercontent.com/noctalia-dev/official-plugins/main/noctalia.d.luau
+ln -s ~/Projetos/noctes/tools/systemd/noctes-scatter.{service,path} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now noctes-scatter.path
 ```
+
+It is optional. Without it, a sheet you add through the editor stays straight
+and grey until you run `tools/noctes-scatter` by hand - everything made from the
+panel is fine either way.
+
+## About the colors
+
+Every note is **dynamic** unless you say otherwise: it picks its own paper, and
+follows the shell's palette, which on a generated theme follows your wallpaper.
+That is the default and it is the fun one.
+
+If a note earns a fixed color - the red one is always the red one - pick a paper
+from the row of chips and it stops following anything. Groceries stay yellow
+forever if that is what you want.
+
+The chips in the editor always show what the sheet will actually look like, and
+a line under them says which mode the note is in, so nothing is a surprise.
+
+## Things that are the way they are
+
+A few decisions worth knowing, since they will come up:
+
+**You write in the panel, not on the sheet.** The sheets are painted below your
+windows, where nothing can take the keyboard. That is a rule of the surface they
+live on, not a choice. Clicking a sheet opens the panel on that note, which is
+one click either way.
+
+**There is no list of notes.** There was, briefly, and it was silly: the notes
+are already on screen. Picking one means looking at the wall and clicking the
+one you want.
+
+**No folded corners.** They were there, they looked like a printing error, and
+they are off. The short version is that the drawing tools available to a plugin
+cannot make a clean diagonal. The long version is in the notes below.
+
+**Deleting takes the sheet with it.** A note and its sticker are the same thing.
+
+## Settings
+
+Per note, in the widget's own settings: paper size, font size, lines shown,
+color, tape, opacity, whether the title shows, whether it follows the theme.
+
+Plugin-wide, in noctalia's plugin settings: default color, paper opacity,
+whether the wall follows the theme, and where `notes.json` lives.
+
+The full tables are in [`noctes/README.md`](noctes/README.md), along with the
+IPC commands if you want a keybind for "new note right now".
+
+## For the curious
+
+[`docs/plugin-notes.md`](docs/plugin-notes.md) is the other kind of document:
+what it took to make paper look like paper inside a plugin sandbox, and the
+eight or nine things about noctalia's plugin API that are not written down
+anywhere and cost an afternoon each. Drop shadows that paint nothing, palette
+roles that do not exist, sliders with two positions. If you are writing a
+noctalia plugin of your own, start there - it will save you the afternoons.
 
 ## License
 
-MIT, except the bundled Patrick Hand font, which is under the SIL Open Font
-License 1.1 (`noctes/PatrickHand-OFL.txt`).
+MIT. The bundled Patrick Hand font is under the SIL Open Font License 1.1, in
+`noctes/PatrickHand-OFL.txt` - it is the handwriting the notes are written in,
+and it deserves the credit.

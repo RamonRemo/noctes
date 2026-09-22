@@ -57,8 +57,9 @@ it produces (see below), but the editor's own output is always an untilted,
 keyless, backgrounded sheet, because those three fields are host state a plugin
 cannot set.
 
-Screenshots and a walk through the first setup are in the
-[repository README](../README.md).
+Screenshots, the pitch and a walk through the first setup are in the
+[repository README](../README.md). The host quirks this code is shaped around
+are collected in [`docs/plugin-notes.md`](../docs/plugin-notes.md).
 
 ## One post-it per widget
 
