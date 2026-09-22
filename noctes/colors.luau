@@ -125,7 +125,14 @@ function M.withAlpha(color, alpha)
     return color
   end
   if string.sub(color, 1, 1) == "#" then
-    return string.format("%s%02X", string.sub(color, 1, 7), math.floor(alpha * 255 + 0.5))
+    -- A hex color can already carry an alpha byte (glass does). Replacing it
+    -- would throw that away, so the two fade together.
+    local existing = 255
+    if #color >= 9 then
+      existing = tonumber(string.sub(color, 8, 9), 16) or 255
+    end
+    return string.format("%s%02X", string.sub(color, 1, 7),
+      math.floor(existing * alpha + 0.5))
   end
   -- A role can already carry an alpha (glass does). Two suffixes would be a
   -- malformed color, so the two fade together instead.
@@ -145,12 +152,14 @@ end
 -- Fixed is fixed on purpose: picking "yellow" and watching it turn green with
 -- the next wallpaper is not a color choice, it is a surprise.
 function M.paper(name, seed, useTheme)
-  -- Glass: a pane rather than a sheet. It borrows the shell's own surface at a
-  -- low alpha, so it sits on the wallpaper the way Noctalia's panels do, and
-  -- takes a hairline edge because a translucent rectangle with no edge reads as
-  -- a smudge. There is no blur behind it - the plugin API exposes none.
+  -- Glass: a pane rather than a sheet. A white veil over whatever is behind it,
+  -- with a hairline edge, because a translucent rectangle with no edge reads as
+  -- a smudge. Text is the theme's on_surface, which flips with light and dark
+  -- schemes and keeps the veil readable either way. There is no blur behind it:
+  -- the plugin API exposes none, and the shell's own blur is wired to its
+  -- panels, not to plugin widgets.
   if name == M.GLASS then
-    return "surface/0.42", "on_surface", "on_surface/0.6", "on_surface/0.22"
+    return "#FFFFFF52", "on_surface", "on_surface/0.6", "#FFFFFF59"
   end
 
   if M.isKnown(name) then

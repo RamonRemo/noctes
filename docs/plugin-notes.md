@@ -67,6 +67,20 @@ manifest mistakes in the community repo, at
 `claude-companion/tests/manifest_spec.py` - worth running against your own
 manifest before a PR.
 
+## Two ways a colour quietly becomes another colour
+
+Both of these cost an evening on the same feature.
+
+An alpha helper that *sets* alpha rather than *multiplying* it throws away the
+alpha a colour already had. A glass paper defined as `#FFFFFF52` came out opaque
+white the moment the sheet's own opacity was applied on top of it.
+
+And a service that validates what it stores will reset a colour it does not
+recognise. The renderer knew about glass; the service did not, so every glass
+note came back from disk as a plain one, and the bug looked like a rendering
+problem for a good while. Keep the two lists in one place, or at least check
+both when adding a value.
+
 ## The palette is fourteen roles
 
 `primary`, `on_primary`, `secondary`, `on_secondary`, `tertiary`, `on_tertiary`,

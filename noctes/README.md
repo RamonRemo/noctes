@@ -21,10 +21,11 @@ when the wallpaper changes - the host resolves role names live, so nothing has
 to reload. Each sheet can override the plugin-wide switch with its own
 *Always* / *Never*.
 
-There is also a **glass** paper: `surface/0.42` with a hairline `on_surface`
-edge, so the sheet reads as a translucent pane tinted by the shell instead of
-coloured paper. It is sharp, not frosted - the plugin API exposes no blur, and
-noctalia's own blur is wired to its panels, not to plugin widgets.
+There is also a **glass** paper: a white veil at about a third alpha with a
+hairline edge, text in `on_surface` so it flips with the scheme. The sheet reads
+as a translucent pane rather than coloured paper. It is sharp, not frosted - the
+plugin API exposes no blur, and noctalia's own blur is wired to its panels, not
+to plugin widgets.
 
 A dynamic sheet draws from four palette roles: `primary`, `secondary`,
 `tertiary` and `error`, each with its own `on_*` for the text. Deliberately not

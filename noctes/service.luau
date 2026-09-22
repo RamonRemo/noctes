@@ -29,7 +29,12 @@
 -- Order invariant: newest updatedAt first. Surfaces render noctes.notes
 -- directly and never re-sort.
 
-local PALETTE = { "yellow", "orange", "pink", "red", "purple", "blue", "green", "gray" }
+-- Mirrors colors.luau: the eight papers plus glass. The service does not draw
+-- anything, but it validates what it stores, and a color it does not recognise
+-- is quietly reset - which is how glass notes kept coming back blank.
+local PALETTE = {
+  "yellow", "orange", "pink", "red", "purple", "blue", "green", "gray", "glass",
+}
 
 local SETTINGS_PATH = "~/.local/state/noctalia/settings.toml"
 
