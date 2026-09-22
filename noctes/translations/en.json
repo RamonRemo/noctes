@@ -83,12 +83,12 @@
     "max_lines": {
       "label": "Lines shown"
     },
-    "paper_height": {
-      "label": "Paper height"
-    },
-    "paper_opacity": {
+    "opacity_override": {
       "description": "0 follows the plugin-wide opacity. The text stays fully opaque either way.",
       "label": "Paper opacity (this sheet)"
+    },
+    "paper_height": {
+      "label": "Paper height"
     },
     "paper_opacity_all": {
       "description": "How solid every post-it is. The text stays fully opaque.",

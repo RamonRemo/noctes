@@ -6,6 +6,29 @@ part that costs the afternoon.
 
 If you are writing a noctalia plugin, this is the page worth skimming first.
 
+## First, get the logs
+
+Noctalia writes its log to stdout, and the usual way to start it - `noctalia -d`,
+or a compositor's autostart - sends that to `/dev/null`. So a plugin that fails
+to parse looks exactly like a plugin that works: the shell comes up, the widget
+is simply absent, and nothing anywhere says why.
+
+```sh
+pkill -x noctalia
+nohup noctalia >/tmp/noctalia.log 2>&1 &
+```
+
+Now a broken plugin says so:
+
+```
+ERR [luau] plugin author/name:entry: call to 'chunk' failed:
+  [string ".../colors.luau"]:180: Expected <eof>, got 'end'
+```
+
+Do this before anything else. Two of the bugs on this page were hunted by
+screenshot for far longer than they deserved, because the message naming the
+line number was being written to nowhere.
+
 ## A desktop widget has no identity
 
 The `desktopWidget` API is three functions: `render`, `setWantsSecondTicks`,
@@ -54,6 +77,13 @@ box is left on auto.
 A box sized on one axis only paints **nothing**. No warning, no log line, just
 an invisible node. This hid the drop shadow for four versions; the code looked
 right and the screen was empty.
+
+## An entry setting that shadows a plugin setting
+
+Same key name at both levels is legal, and the host warns that the entry value
+wins. If the plugin one is meant as a fallback, give the two different names -
+`paper_opacity` plugin-wide and `opacity_override` per entry - and publish the
+plugin value through state so the entry can read both.
 
 ## Numeric settings need an explicit `step`
 

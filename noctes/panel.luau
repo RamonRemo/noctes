@@ -147,48 +147,39 @@ end
 local function colorPicker(note)
   local isAuto = not colors.isKnown(note.color)
 
-  -- The first chip is the dynamic one and the default: the sheet generates its
-  -- own paper, following the theme when that is on. The rest are the fixed
-  -- papers, which stay put whatever the theme does.
-  local swatches = {
-    ui.row({
-      key = "swatch-auto",
+  -- A chip shows the paper it would give the sheet. The two that are not simply
+  -- a colour carry a glyph, painted in that paper's own text color - which is
+  -- the one shade guaranteed to be readable on it, whatever the theme does.
+  local function chip(name, glyph)
+    local selected = name == "" and isAuto or note.color == name
+    local fill, ink = colors.paper(name, seedOf(note), themeColors)
+
+    local children = {}
+    if glyph ~= nil then
+      table.insert(children, ui.glyph({ name = glyph, size = 14, color = ink }))
+    end
+
+    return ui.row({
+      key = "swatch-" .. (name ~= "" and name or "auto"),
       width = 24,
       height = 24,
       radius = 12,
       align = "center",
       justify = "center",
-      fill = colors.swatch("", seedOf(note), themeColors),
-      border = isAuto and "on_surface" or "outline/0.4",
-      borderWidth = isAuto and 2 or 1,
-      onClick = function()
-        setColor(note.id, "")
-      end,
-    }, {
-      ui.glyph({ name = "wand", size = 12, color = themeColors and "on_surface" or "#22262F" }),
-    }),
-  }
-
-  local chips = {}
-  for _, name in ipairs(colors.NAMES) do
-    table.insert(chips, name)
-  end
-  table.insert(chips, colors.GLASS)
-
-  for _, name in ipairs(chips) do
-    local selected = note.color == name
-    table.insert(swatches, ui.box({
-      key = "swatch-" .. name,
-      width = 24,
-      height = 24,
-      radius = 12,
-      fill = colors.swatch(name, seedOf(note), themeColors),
+      fill = fill,
       border = selected and "on_surface" or "outline/0.4",
       borderWidth = selected and 2 or 1,
       onClick = function()
         setColor(note.id, name)
       end,
-    }))
+    }, children)
+  end
+
+  -- Dynamic first and glass second: the two that behave rather than just sit
+  -- there. Then the fixed papers.
+  local swatches = { chip("", "wand"), chip(colors.GLASS, "droplet") }
+  for _, name in ipairs(colors.NAMES) do
+    table.insert(swatches, chip(name, nil))
   end
 
   -- A tooltip would be the obvious place for this, but `tooltip` on a box or a

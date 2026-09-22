@@ -29,7 +29,7 @@ local paperHeight = math.max(60, math.floor(tonumber(noctalia.getConfig("paper_h
 local fontSize = math.max(8, math.floor(tonumber(noctalia.getConfig("font_size")) or 13))
 local maxLines = math.max(1, math.floor(tonumber(noctalia.getConfig("max_lines")) or 14))
 local showTitle = noctalia.getConfig("show_title") ~= false
-local paperOpacityOverride = tonumber(noctalia.getConfig("paper_opacity")) or 0
+local paperOpacityOverride = tonumber(noctalia.getConfig("opacity_override")) or 0
 local paperOpacityDefault = tonumber(noctalia.state.get("noctes.paperOpacity")) or 0.96
 
 local function paperOpacity()

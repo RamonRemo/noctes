@@ -176,12 +176,4 @@ function M.paper(name, seed, useTheme)
   return M.shift(CLASSIC[generated], (M.hash(seed) % 13) - 6), INK, INK_MUTED
 end
 
--- Chip color for the panel's picker. The named chips are the fixed papers, so
--- they always show their own color; the dynamic chip passes "" and gets
--- whatever that note would actually be painted.
-function M.swatch(name, seed, useTheme)
-  local fill = M.paper(name, seed or "", useTheme)
-  return fill
-end
-
 return M

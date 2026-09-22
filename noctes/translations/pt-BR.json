@@ -83,12 +83,12 @@
     "max_lines": {
       "label": "Linhas exibidas"
     },
-    "paper_height": {
-      "label": "Altura do papel"
-    },
-    "paper_opacity": {
+    "opacity_override": {
       "description": "0 segue a opacidade do plugin. O texto continua opaco dos dois jeitos.",
       "label": "Opacidade do papel (esta folha)"
+    },
+    "paper_height": {
+      "label": "Altura do papel"
     },
     "paper_opacity_all": {
       "description": "Quao solido fica todo post-it. O texto continua opaco.",
