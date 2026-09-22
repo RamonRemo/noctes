@@ -1,0 +1,15 @@
+# Index of the plugins this source ships. In the upstream repos CI generates
+# this file; a local `path` source has no CI, so it is maintained by hand.
+
+[[plugin]]
+id = "remo/noctes"
+name = "Noctes"
+version = "0.14.0"
+updated_at = 1790092241
+added_at = 1790092241
+author = "remo"
+license = "MIT"
+icon = "note"
+description = "Sticky notes pinned to the desktop, edited from a bar panel."
+plugin_api = 26
+tags = ["productivity", "utility"]

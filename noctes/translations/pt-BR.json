@@ -1,0 +1,141 @@
+{
+  "bar": {
+    "tooltip": {
+      "one": "1 nota",
+      "other": "{count} notas"
+    }
+  },
+  "board": {
+    "empty_note": "Nota vazia",
+    "untitled": "Sem titulo"
+  },
+  "color": {
+    "auto": "Dinamica (segue o tema)",
+    "blue": "Azul",
+    "gray": "Cinza",
+    "green": "Verde",
+    "orange": "Laranja",
+    "pink": "Rosa",
+    "purple": "Roxo",
+    "red": "Vermelho",
+    "yellow": "Amarelo"
+  },
+  "fold": {
+    "auto": "Automatica",
+    "bottom_left": "Inferior esquerda",
+    "bottom_right": "Inferior direita",
+    "none": "Nenhuma"
+  },
+  "note": {
+    "empty_hint": "Clique para escrever",
+    "loading": "..."
+  },
+  "notify": {
+    "add_failed": {
+      "body": "A gravacao do settings.toml falhou. Feche o editor de widgets e tente de novo.",
+      "title": "Nao consegui adicionar o post-it"
+    }
+  },
+  "panel": {
+    "color_dynamic_classic": "Dinamica: o papel e gerado pela chave da nota. Ligue “Papel segue o tema” para acompanhar o papel de parede.",
+    "color_dynamic_theme": "Dinamica: o papel e gerado pela chave da nota e segue o tema, entao muda de cor junto com o papel de parede.",
+    "color_fixed": "Papel fixo: fica nessa cor faca o tema o que fizer.",
+    "content_placeholder": "Escreva sua nota",
+    "delete": "Excluir",
+    "delete_confirm": "Clique de novo para excluir",
+    "empty": "Nenhuma nota ainda",
+    "move": "Mover post-its (editor de widgets)",
+    "new": "Nova",
+    "not_on_screen": "fora da tela",
+    "save": "Salvar",
+    "saved": "Salvo",
+    "stick": "Colar na area de trabalho",
+    "title": "Noctes",
+    "title_placeholder": "Titulo",
+    "unsaved": "Alteracoes nao salvas"
+  },
+  "settings": {
+    "color": {
+      "description": "Automatica deriva a cor da chave; a cor da propria nota tem prioridade.",
+      "label": "Cor do papel"
+    },
+    "default_color": {
+      "label": "Cor padrao"
+    },
+    "fold": {
+      "description": "Desligada por padrao: aqui uma diagonal so pode ser desenhada em escadinha, e aparece.",
+      "label": "Ponta dobrada"
+    },
+    "font_path": {
+      "description": "Vem com a Patrick Hand. Aponte um caminho absoluto ou com ~ para outra .ttf/.otf, ou deixe vazio para a fonte da shell.",
+      "label": "Arquivo de fonte"
+    },
+    "font_size": {
+      "description": "Tamanho do corpo. Fonte de escrita a mao pede alguns pontos a mais que uma fonte de interface.",
+      "label": "Tamanho da fonte"
+    },
+    "key": {
+      "description": "Qual nota este post-it mostra. Defina a mesma chave na nota, pelo painel.",
+      "label": "Chave da nota"
+    },
+    "max_lines": {
+      "label": "Linhas exibidas"
+    },
+    "paper_height": {
+      "label": "Altura do papel"
+    },
+    "paper_opacity": {
+      "description": "0 segue a opacidade do plugin. O texto continua opaco dos dois jeitos.",
+      "label": "Opacidade do papel (esta folha)"
+    },
+    "paper_opacity_all": {
+      "description": "Quao solido fica todo post-it. O texto continua opaco.",
+      "label": "Opacidade do papel"
+    },
+    "paper_size": {
+      "description": "Tamanho do papel em px. Deixe a caixa do widget um pouco maior."
+    },
+    "paper_width": {
+      "label": "Largura do papel"
+    },
+    "save_path": {
+      "description": "Pasta do notes.json. Vazio usa o diretorio de dados do plugin.",
+      "label": "Pasta de gravacao"
+    },
+    "shadow": {
+      "description": "Descola o papel do papel de parede",
+      "label": "Sombra"
+    },
+    "show_count": {
+      "label": "Mostrar contagem de notas na barra"
+    },
+    "show_title": {
+      "description": "Desenha o titulo da nota acima do corpo",
+      "label": "Mostrar titulo"
+    },
+    "tape": {
+      "description": "Automatica decide pela chave se este post-it tem fita e onde.",
+      "label": "Fita"
+    },
+    "theme_colors": {
+      "description": "Usa a paleta do Noctalia no lugar das cores classicas de papel. A paleta acompanha o papel de parede, entao todo post-it muda de cor junto.",
+      "label": "Papel segue o tema"
+    },
+    "use_theme_colors": {
+      "description": "Sobrescreve a opcao do plugin so para esta folha.",
+      "label": "Papel segue o tema"
+    }
+  },
+  "tape": {
+    "auto": "Automatica",
+    "center": "Centro",
+    "left": "Esquerda",
+    "none": "Nenhuma",
+    "right": "Direita"
+  },
+  "theme_colors": {
+    "inherit": "Seguir a opcao do plugin",
+    "off": "Nunca",
+    "on": "Sempre"
+  }
+}

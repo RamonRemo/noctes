@@ -1,0 +1,288 @@
+#!/usr/bin/env python3
+"""Add or remove a post-it desktop widget in Noctalia's settings.
+
+Noctalia has no IPC for creating a desktop widget, and a plugin cannot reach the
+host-owned fields anyway (rotation, background, and the widget entry itself), so
+the plugin shells out here: append the widget, give it a random tilt, turn the
+host background off, and bind it to a note key.
+
+Called by the noctes service; usable by hand too:
+
+  noctes-widget add --output DP-2 --screen 3440x1440 --avoid compras,trabalho
+  noctes-widget remove --key nota-2
+
+The key is chosen here rather than by the caller, because the keys already spoken
+for live in settings.toml: the caller only knows which notes exist, not which
+widgets are bound. The chosen key is printed as "key=<key>" on the first line.
+"""
+
+import argparse
+import random
+import re
+import shutil
+import subprocess
+import sys
+from datetime import date
+from pathlib import Path
+
+SETTINGS = Path.home() / ".local/state/noctalia/settings.toml"
+WIDGET_TYPE = "remo/noctes:note"
+
+MIN_TILT = 0.018
+MAX_TILT = 0.055
+
+# Where a new sheet lands when nothing says otherwise: a cascade down and right
+# from the top-left, wrapping into a new column every few sheets.
+CASCADE_X = 250
+CASCADE_Y = 240
+PER_COLUMN = 4
+MARGIN = 170
+
+WIDGET_HEADER = re.compile(r"^\s*\[desktop_widgets\.widget\.(desktop-widget-[0-9a-f]+)\]\s*$")
+SETTINGS_HEADER = re.compile(r"^\s*\[desktop_widgets\.widget\.(desktop-widget-[0-9a-f]+)\.settings\]\s*$")
+ORDER_START = re.compile(r"^\s*widget_order\s*=\s*\[\s*$")
+
+
+def taken_keys(text):
+    """Keys already bound to any desktop widget in settings.toml."""
+    keys = set()
+    for block in re.split(r"\n(?=\s*\[)", text):
+        head = block.splitlines()[0] if block.splitlines() else ""
+        if ".settings]" not in head:
+            continue
+        found = re.search(r'^\s*key\s*=\s*"([^"]*)"', block, re.M)
+        if found and found.group(1):
+            keys.add(found.group(1))
+    return keys
+
+
+def free_key(text, prefix, avoid):
+    used = taken_keys(text) | {part for part in avoid.split(",") if part}
+    index = 1
+    while f"{prefix}-{index}" in used:
+        index += 1
+    return f"{prefix}-{index}"
+
+
+def widget_keys(text):
+    """Post-it widget id -> bound key, for every post-it widget in the file."""
+    is_note_widget, keys = set(), {}
+    for block in re.split(r"\n(?=\s*\[)", text):
+        head = block.splitlines()[0] if block.splitlines() else ""
+        found = WIDGET_HEADER.match(head)
+        if found and f'type = "{WIDGET_TYPE}"' in block:
+            is_note_widget.add(found.group(1))
+            continue
+        found = SETTINGS_HEADER.match(head)
+        if found:
+            key = re.search(r'^\s*key\s*=\s*"([^"]*)"', block, re.M)
+            keys[found.group(1)] = key.group(1) if key else ""
+    return {wid: key for wid, key in keys.items() if wid in is_note_widget and key}
+
+
+def busiest_output(text):
+    """The output that already holds the most post-its.
+
+    A new sheet belongs on the wall the others are on, not on whichever screen
+    happens to hold the focused window - that one is usually the screen being
+    worked on, where a fullscreen window would hide the post-it anyway.
+    """
+    counts = {}
+    for block in re.split(r"\n(?=\s*\[)", text):
+        head = block.splitlines()[0] if block.splitlines() else ""
+        if WIDGET_HEADER.match(head) is None or f'type = "{WIDGET_TYPE}"' not in block:
+            continue
+        found = re.search(r'^\s*output\s*=\s*"([^"]*)"', block, re.M)
+        if found:
+            counts[found.group(1)] = counts.get(found.group(1), 0) + 1
+    if not counts:
+        return None
+    return max(counts, key=counts.get)
+
+
+def next_widget_id(text):
+    used = [int(found, 16) for found in
+            re.findall(r"desktop-widget-([0-9a-f]{16})", text)]
+    return f"desktop-widget-{(max(used) + 1 if used else 1):016x}"
+
+
+def existing_on_output(text, output):
+    """Centres of the post-its already on this output, to cascade past them."""
+    spots = []
+    for block in re.split(r"\n(?=\s*\[)", text):
+        head = block.splitlines()[0] if block.splitlines() else ""
+        if WIDGET_HEADER.match(head) is None:
+            continue
+        if f'type = "{WIDGET_TYPE}"' not in block or f'output = "{output}"' not in block:
+            continue
+        cx = re.search(r"^\s*cx\s*=\s*([\d.-]+)", block, re.M)
+        cy = re.search(r"^\s*cy\s*=\s*([\d.-]+)", block, re.M)
+        if cx and cy:
+            spots.append((float(cx.group(1)), float(cy.group(1))))
+    return spots
+
+
+def free_spot(taken, width, height):
+    """First cascade slot that is not already occupied; a random spot once the
+    cascade runs off the screen."""
+    for index in range(64):
+        cx = MARGIN + (index // PER_COLUMN) * CASCADE_X
+        cy = MARGIN + (index % PER_COLUMN) * CASCADE_Y
+        if cx > width - MARGIN or cy > height - MARGIN:
+            break
+        if all(abs(cx - x) > 40 or abs(cy - y) > 40 for x, y in taken):
+            return float(cx), float(cy)
+
+    span_x = max(MARGIN + 1, int(width) - MARGIN)
+    span_y = max(MARGIN + 1, int(height) - MARGIN)
+    return float(random.randint(MARGIN, span_x)), float(random.randint(MARGIN, span_y))
+
+
+def commit(text, backup_note):
+    """Write, validate, and put the old file back if Noctalia rejects it."""
+    backup = SETTINGS.with_suffix(f".toml.bak-noctes-{date.today().isoformat()}")
+    shutil.copy2(SETTINGS, backup)
+    SETTINGS.write_text(text)
+
+    check = subprocess.run(["noctalia", "config", "validate"], capture_output=True, text=True)
+    if check.returncode != 0:
+        shutil.copy2(backup, SETTINGS)
+        sys.exit(f"{backup_note}: config rejected, restored {backup}:\n{check.stdout}{check.stderr}")
+
+    subprocess.run(["noctalia", "msg", "config-reload"], capture_output=True)
+
+
+def remove(args):
+    text = SETTINGS.read_text()
+
+    target = None
+    for widget_id, key in widget_keys(text).items():
+        if key == args.key:
+            target = widget_id
+            break
+    if target is None:
+        print(f'no post-it widget bound to "{args.key}"')
+        return
+
+    lines = text.splitlines(keepends=True)
+    out, dropping = [], False
+    header = re.compile(rf"^\s*\[desktop_widgets\.widget\.{re.escape(target)}(\.settings)?\]\s*$")
+    order_entry = re.compile(rf'^\s*"{re.escape(target)}",?\s*$')
+    for line in lines:
+        if header.match(line):
+            dropping = True
+            continue
+        if dropping and line.lstrip().startswith("["):
+            dropping = False
+        if dropping or order_entry.match(line):
+            continue
+        out.append(line)
+
+    text = "".join(out)
+    # The last entry of widget_order must not keep a trailing comma.
+    text = re.sub(r",(\s*\n\s*\])", r"\1", text)
+
+    commit(text, "remove")
+    print(f'{target} removed, key "{args.key}"')
+
+
+def add(args):
+    try:
+        width, height = (float(part) for part in args.screen.lower().split("x"))
+    except ValueError:
+        sys.exit(f"bad --screen: {args.screen}")
+
+    text = SETTINGS.read_text()
+    output = args.output
+    if not args.force_output:
+        output = busiest_output(text) or args.output
+        if output != args.output:
+            # Geometry came with the caller's output; without the real size of
+            # the chosen one, keep the cascade inside the smaller of the two.
+            width, height = min(width, 1920.0), min(height, 1080.0)
+
+    key = args.key or free_key(text, args.key_prefix, args.avoid)
+    widget_id = next_widget_id(text)
+    cx, cy = free_spot(existing_on_output(text, output), width, height)
+    tilt = random.uniform(MIN_TILT, MAX_TILT) * random.choice((-1, 1))
+
+    block = (
+        f"\n    [desktop_widgets.widget.{widget_id}]\n"
+        f"    box_height = 0.0\n"
+        f"    box_width = 0.0\n"
+        f"    cx = {cx}\n"
+        f"    cy = {cy}\n"
+        f'    output = "{output}"\n'
+        f"    placement_height = {height}\n"
+        f"    placement_width = {width}\n"
+        f"    rotation = {tilt:.6f}\n"
+        f'    type = "{WIDGET_TYPE}"\n'
+        f"\n        [desktop_widgets.widget.{widget_id}.settings]\n"
+        f"        background = false\n"
+        f'        key = "{key}"\n'
+    )
+
+    lines = text.splitlines(keepends=True)
+    out = []
+    in_order = False
+    placed_in_order = False
+    for line in lines:
+        if ORDER_START.match(line):
+            in_order = True
+            out.append(line)
+            continue
+        if in_order and line.strip().startswith("]"):
+            # An empty array has no previous entry to put a comma on.
+            if out and out[-1].strip().rstrip(",").startswith('"desktop-widget'):
+                out[-1] = out[-1].rstrip("\n").rstrip(",") + ",\n"
+            out.append(f'    "{widget_id}"\n')
+            out.append(line)
+            in_order = False
+            placed_in_order = True
+            continue
+        out.append(line)
+
+    if not placed_in_order:
+        sys.exit("no [desktop_widgets] widget_order to extend")
+
+    text = "".join(out)
+    marker = "\n[dock]\n"
+    text = text.replace(marker, block + marker, 1) if marker in text else text + block
+
+    commit(text, "add")
+    # First line is machine-read by the service, which binds a note to this key.
+    print(f"key={key}")
+    print(f"{widget_id} at {cx:.0f},{cy:.0f} on {output}, tilt {tilt:+.3f}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    adder = sub.add_parser("add", help="append a post-it widget")
+    adder.add_argument("--key", help="bind to this key instead of generating one")
+    adder.add_argument("--key-prefix", default="nota",
+                       help="stem for the generated key (default: nota)")
+    adder.add_argument("--avoid", default="",
+                       help="comma-separated keys the caller knows are taken")
+    adder.add_argument("--output", required=True,
+                       help="connector to use when no post-it exists yet, e.g. DP-2")
+    adder.add_argument("--force-output", action="store_true",
+                       help="use --output even when other post-its live elsewhere")
+    adder.add_argument("--screen", required=True, help="WIDTHxHEIGHT of that output")
+    adder.set_defaults(run=add)
+
+    dropper = sub.add_parser("remove", help="delete the post-it widget bound to a key")
+    dropper.add_argument("--key", required=True)
+    dropper.set_defaults(run=remove)
+
+    args = parser.parse_args()
+
+    if not SETTINGS.exists():
+        sys.exit(f"not found: {SETTINGS}")
+    args.run(args)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""Scatter the post-it desktop widgets: give each one a key, a random tilt and
+no host background.
+
+A plugin cannot reach the three things that make a wall of post-its look
+hand-stuck, because they are host state rather than plugin settings:
+
+  rotation    per-widget, in radians, owned by the desktop-widget editor
+  background  the rounded panel Noctalia draws behind every desktop widget
+  key         a plugin setting, but one a new widget starts empty, and an empty
+              key is why every fresh post-it comes out the same yellow
+
+So this walks settings.toml and stamps them in. Everything else about the look
+(paper color, folded corner, tape) is derived from the key by the plugin, so
+handing out distinct keys is what makes the sheets differ.
+
+Run it with the desktop-widget editor CLOSED: the editor writes settings.toml
+when it exits and would overwrite whatever this wrote.
+
+By default only untouched widgets are changed - a post-it counts as untouched
+when it has no key, or its background is still on, or its rotation is exactly
+zero - so the command is idempotent and safe to run on every settings change.
+
+Usage:
+  noctes-scatter              scatter the post-its that are still untouched
+  noctes-scatter --all        re-randomize every post-it, including placed ones
+  noctes-scatter --keep-tilt  never touch rotation
+  noctes-scatter --dry-run    print what would change, write nothing
+"""
+
+import argparse
+import random
+import re
+import shutil
+import subprocess
+import sys
+from datetime import date
+from pathlib import Path
+
+SETTINGS = Path.home() / ".local/state/noctalia/settings.toml"
+WIDGET_TYPE = "remo/noctes:note"
+
+# Radians. Enough to read as hand-placed, not enough to look broken.
+MIN_TILT = 0.018
+MAX_TILT = 0.055
+
+HEADER = re.compile(r"^\s*\[desktop_widgets\.widget\.([^.\]]+)\]\s*$")
+SETTINGS_HEADER = re.compile(r"^\s*\[desktop_widgets\.widget\.([^.\]]+)\.settings\]\s*$")
+ANY_TABLE = re.compile(r"^\s*\[")
+
+
+def parse_blocks(lines):
+    """Map widget id -> {"body": (start, end), "settings": (start, end) | None}.
+
+    Ranges are half-open line indices covering the table's key-value lines, not
+    its header.
+    """
+    blocks = {}
+    index = 0
+    while index < len(lines):
+        body = HEADER.match(lines[index])
+        settings = SETTINGS_HEADER.match(lines[index])
+        if not body and not settings:
+            index += 1
+            continue
+
+        start = index + 1
+        end = start
+        while end < len(lines) and not ANY_TABLE.match(lines[end]):
+            end += 1
+
+        widget_id = (body or settings).group(1)
+        entry = blocks.setdefault(widget_id, {"body": None, "settings": None})
+        entry["settings" if settings else "body"] = (start, end)
+        index = end
+    return blocks
+
+
+def read_value(lines, span, key):
+    if span is None:
+        return None
+    pattern = re.compile(rf"^\s*{re.escape(key)}\s*=\s*(.+?)\s*$")
+    for i in range(*span):
+        found = pattern.match(lines[i])
+        if found:
+            return i, found.group(1)
+    return None
+
+
+def append_point(lines, span):
+    """Index just past the last non-blank line of a table, so an inserted key
+    lands inside the table rather than after the blank line that follows it."""
+    if span is None:
+        return None
+    point = span[0]
+    for i in range(*span):
+        if lines[i].strip():
+            point = i + 1
+    return point
+
+
+def indent_of(lines, span, fallback):
+    if span is not None:
+        for i in range(*span):
+            if lines[i].strip():
+                return lines[i][: len(lines[i]) - len(lines[i].lstrip())]
+    return fallback
+
+
+def main():
+    parser = argparse.ArgumentParser(add_help=True, description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--all", action="store_true",
+                        help="re-randomize every post-it, not only untouched ones")
+    parser.add_argument("--keep-tilt", action="store_true",
+                        help="do not touch rotations that are already set")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="report changes without writing")
+    args = parser.parse_args()
+
+    if not SETTINGS.exists():
+        sys.exit(f"not found: {SETTINGS}")
+
+    lines = SETTINGS.read_text().splitlines(keepends=True)
+    blocks = parse_blocks(lines)
+
+    sheets = [
+        widget_id for widget_id, spans in blocks.items()
+        if spans["body"] and read_value(lines, spans["body"], "type")
+        and read_value(lines, spans["body"], "type")[1] == f'"{WIDGET_TYPE}"'
+    ]
+    if not sheets:
+        sys.exit("no post-it desktop widgets in settings.toml")
+
+    taken = set()
+    for widget_id in sheets:
+        found = read_value(lines, blocks[widget_id]["settings"], "key")
+        if found and found[1].strip('"'):
+            taken.add(found[1].strip('"'))
+
+    # Edits are collected per line and applied at the end, so the spans stay
+    # valid while every widget is inspected.
+    replacements = {}
+    insertions = {}
+    report = []
+    counter = 0
+
+    for widget_id in sheets:
+        spans = blocks[widget_id]
+        changes = []
+
+        key_found = read_value(lines, spans["settings"], "key")
+        bg_found = read_value(lines, spans["settings"], "background")
+        tilt_found = read_value(lines, spans["body"], "rotation")
+        untouched = (
+            not (key_found and key_found[1].strip('"'))
+            or not (bg_found and bg_found[1] == "false")
+            or not (tilt_found and float(tilt_found[1]) != 0.0)
+        )
+        if not (args.all or untouched):
+            continue
+
+        if not args.keep_tilt:
+            tilt = random.uniform(MIN_TILT, MAX_TILT) * random.choice((-1, 1))
+            found = read_value(lines, spans["body"], "rotation")
+            body_indent = indent_of(lines, spans["body"], "    ")
+            line = f"{body_indent}rotation = {tilt:.6f}\n"
+            if found:
+                replacements[found[0]] = line
+            else:
+                insertions.setdefault(append_point(lines, spans["body"]), []).append(line)
+            changes.append(f"tilt {tilt:+.3f} rad")
+
+        settings_span = spans["settings"]
+        settings_indent = indent_of(lines, settings_span, "        ")
+        settings_point = append_point(lines, settings_span)
+
+        def new_settings_table():
+            return (f"\n{settings_indent}[desktop_widgets.widget.{widget_id}.settings]\n")
+
+        found = read_value(lines, settings_span, "key")
+        current_key = found[1].strip('"') if found else ""
+        if not current_key:
+            counter += 1
+            new_key = f"nota-{counter}"
+            while new_key in taken:
+                counter += 1
+                new_key = f"nota-{counter}"
+            taken.add(new_key)
+            line = f'{settings_indent}key = "{new_key}"\n'
+            if found:
+                replacements[found[0]] = line
+            elif settings_span:
+                insertions.setdefault(settings_point, []).append(line)
+            else:
+                point = append_point(lines, spans["body"])
+                insertions.setdefault(point, []).append(new_settings_table() + line)
+            changes.append(f'key "{new_key}"')
+
+        found = read_value(lines, settings_span, "background")
+        if not found or found[1] != "false":
+            line = f"{settings_indent}background = false\n"
+            if found:
+                replacements[found[0]] = line
+            elif settings_span:
+                insertions.setdefault(settings_point, []).append(line)
+            else:
+                # The settings table may have just been created above; append to
+                # whatever is already queued for this insertion point.
+                point = append_point(lines, spans["body"])
+                if point not in insertions:
+                    insertions[point] = [new_settings_table()]
+                insertions[point].append(line)
+            changes.append("background off")
+
+        if changes:
+            report.append(f"  {widget_id}: {', '.join(changes)}")
+
+    if not report:
+        print("nothing to change")
+        return
+
+    print(f"{len(report)} post-it widget(s):")
+    print("\n".join(report))
+
+    if args.dry_run:
+        return
+
+    out = []
+    for i, line in enumerate(lines):
+        if i in insertions:
+            out.extend(insertions[i])
+        out.append(replacements.get(i, line))
+    if len(lines) in insertions:
+        out.extend(insertions[len(lines)])
+
+    backup = SETTINGS.with_suffix(f".toml.bak-noctes-{date.today().isoformat()}")
+    shutil.copy2(SETTINGS, backup)
+    SETTINGS.write_text("".join(out))
+
+    check = subprocess.run(["noctalia", "config", "validate"],
+                           capture_output=True, text=True)
+    if check.returncode != 0:
+        shutil.copy2(backup, SETTINGS)
+        sys.exit(f"config rejected, restored {backup}:\n{check.stdout}{check.stderr}")
+
+    subprocess.run(["noctalia", "msg", "config-reload"], capture_output=True)
+    print(f"applied and reloaded (backup: {backup})")
+
+
+if __name__ == "__main__":
+    main()
