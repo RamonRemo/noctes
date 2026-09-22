@@ -225,7 +225,7 @@ local function render()
   local note = currentNote()
   lastDrawn = signatureOf(note)
   local seed = seedOf(note)
-  local paper, ink, inkMuted = colors.paper(resolvedColor(note), seed, useThemeColors())
+  local paper, ink, inkMuted, edge = colors.paper(resolvedColor(note), seed, useThemeColors())
   local fold = resolvedFold(seed)
   local tape = resolvedTape(seed)
 
@@ -296,6 +296,8 @@ local function render()
     gap = 0,
     radius = 2,
     fill = colors.withAlpha(paper, paperOpacity()),
+    border = edge,
+    borderWidth = edge ~= nil and 1 or nil,
     align = "stretch",
     onClick = onPaperClick,
   }, body)

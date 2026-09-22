@@ -169,7 +169,13 @@ local function colorPicker(note)
     }),
   }
 
+  local chips = {}
   for _, name in ipairs(colors.NAMES) do
+    table.insert(chips, name)
+  end
+  table.insert(chips, colors.GLASS)
+
+  for _, name in ipairs(chips) do
     local selected = note.color == name
     table.insert(swatches, ui.box({
       key = "swatch-" .. name,
@@ -193,6 +199,8 @@ local function colorPicker(note)
   if isAuto then
     caption = themeColors and noctalia.tr("panel.color_dynamic_theme")
       or noctalia.tr("panel.color_dynamic_classic")
+  elseif note.color == colors.GLASS then
+    caption = noctalia.tr("panel.color_glass")
   else
     caption = noctalia.tr("panel.color_fixed")
   end

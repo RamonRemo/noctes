@@ -12,6 +12,10 @@ local M = {}
 
 M.NAMES = { "yellow", "orange", "pink", "red", "purple", "blue", "green", "gray" }
 
+-- Glass is a paper you can only ask for by name: it is never generated, because
+-- a wall of translucent sheets is a wall you cannot read.
+M.GLASS = "glass"
+
 local CLASSIC = {
   yellow = "#FFF0A5",
   orange = "#FFD3A3",
@@ -77,7 +81,10 @@ function M.pick(list, text, salt)
 end
 
 function M.isKnown(name)
-  return type(name) == "string" and CLASSIC[name] ~= nil
+  if type(name) ~= "string" then
+    return false
+  end
+  return CLASSIC[name] ~= nil or name == M.GLASS
 end
 
 -- A note carries "" when nobody picked a color: that resolves to a generated
@@ -120,6 +127,12 @@ function M.withAlpha(color, alpha)
   if string.sub(color, 1, 1) == "#" then
     return string.format("%s%02X", string.sub(color, 1, 7), math.floor(alpha * 255 + 0.5))
   end
+  -- A role can already carry an alpha (glass does). Two suffixes would be a
+  -- malformed color, so the two fade together instead.
+  local base, existing = string.match(color, "^([%a_]+)/([%d.]+)$")
+  if base ~= nil then
+    return string.format("%s/%.2f", base, (tonumber(existing) or 1) * alpha)
+  end
   return string.format("%s/%.2f", color, alpha)
 end
 
@@ -132,6 +145,14 @@ end
 -- Fixed is fixed on purpose: picking "yellow" and watching it turn green with
 -- the next wallpaper is not a color choice, it is a surprise.
 function M.paper(name, seed, useTheme)
+  -- Glass: a pane rather than a sheet. It borrows the shell's own surface at a
+  -- low alpha, so it sits on the wallpaper the way Noctalia's panels do, and
+  -- takes a hairline edge because a translucent rectangle with no edge reads as
+  -- a smudge. There is no blur behind it - the plugin API exposes none.
+  if name == M.GLASS then
+    return "surface/0.42", "on_surface", "on_surface/0.6", "on_surface/0.22"
+  end
+
   if M.isKnown(name) then
     return CLASSIC[name], INK, INK_MUTED
   end

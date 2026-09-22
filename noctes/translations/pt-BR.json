@@ -12,6 +12,7 @@
   "color": {
     "auto": "Dinamica (segue o tema)",
     "blue": "Azul",
+    "glass": "Vidro",
     "gray": "Cinza",
     "green": "Verde",
     "orange": "Laranja",
@@ -40,6 +41,7 @@
     "color_dynamic_classic": "Dinamica: o papel e gerado pela chave da nota. Ligue “Papel segue o tema” para acompanhar o papel de parede.",
     "color_dynamic_theme": "Dinamica: o papel e gerado pela chave da nota e segue o tema, entao muda de cor junto com o papel de parede.",
     "color_fixed": "Papel fixo: fica nessa cor faca o tema o que fizer.",
+    "color_glass": "Vidro: um painel translucido no lugar do papel, tingido pela superficie da shell. Nitido, nao borrado - plugin nao tem blur disponivel.",
     "content_placeholder": "Escreva sua nota",
     "delete": "Excluir",
     "delete_confirm": "Clique de novo para excluir",

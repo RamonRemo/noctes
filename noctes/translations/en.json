@@ -12,6 +12,7 @@
   "color": {
     "auto": "Dynamic (follows the theme)",
     "blue": "Blue",
+    "glass": "Glass",
     "gray": "Gray",
     "green": "Green",
     "orange": "Orange",
@@ -40,6 +41,7 @@
     "color_dynamic_classic": "Dynamic: the paper is generated from this note's key. Turn on “Paper follows the theme” to make it track the wallpaper.",
     "color_dynamic_theme": "Dynamic: the paper is generated from this note's key and follows the theme, so it recolors with the wallpaper.",
     "color_fixed": "Fixed paper: stays this color whatever the theme does.",
+    "color_glass": "Glass: a translucent pane instead of paper, tinted by the shell's surface. Sharp, not blurred - a plugin gets no blur to work with.",
     "content_placeholder": "Write your note",
     "delete": "Delete",
     "delete_confirm": "Click again to delete",
