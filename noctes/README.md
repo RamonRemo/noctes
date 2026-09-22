@@ -4,7 +4,7 @@ Sticky notes pinned to the desktop, with a bar widget and a panel for editing.
 
 | | |
 | --- | --- |
-| Id | `noctes/noctes` |
+| Id | `remo/noctes` |
 | Entries | Service: `service`; bar widget: `bar`; panel: `panel`; desktop widget: `note` |
 
 ## Paper: dynamic by default, fixed on request
@@ -38,7 +38,7 @@ files is different: a hot reload does not always reach every desktop widget
 already on screen, and a sheet left on the old code keeps its old look until
 
 ```sh
-noctalia msg plugins disable noctes/noctes && noctalia msg plugins enable noctes/noctes
+noctalia msg plugins disable remo/noctes && noctalia msg plugins enable remo/noctes
 ```
 
 ## Adding one
@@ -49,7 +49,7 @@ the panel's list is therefore something that exists on screen, and deleting a
 note takes its sheet off the desktop too. Same thing over IPC:
 
 ```sh
-noctalia msg plugin noctes/noctes:service all desk
+noctalia msg plugin remo/noctes:service all desk
 ```
 
 The desktop-widget editor still works, and `tools/noctes-scatter` fixes up what
@@ -185,19 +185,19 @@ clears a note's color and lets the post-it derive one from its key.
 ### IPC
 
 ```sh
-noctalia msg plugin noctes/noctes:service all desk           # note + desktop widget
-noctalia msg plugin noctes/noctes:service all move           # toggle the widget editor
-noctalia msg plugin noctes/noctes:service all new            # empty note
-noctalia msg plugin noctes/noctes:service all new "buy milk" # note with a body
-noctalia msg plugin noctes/noctes:service all open work      # select the "work" note,
+noctalia msg plugin remo/noctes:service all desk           # note + desktop widget
+noctalia msg plugin remo/noctes:service all move           # toggle the widget editor
+noctalia msg plugin remo/noctes:service all new            # empty note
+noctalia msg plugin remo/noctes:service all new "buy milk" # note with a body
+noctalia msg plugin remo/noctes:service all open work      # select the "work" note,
                                                            # creating it if absent
-noctalia msg plugin noctes/noctes:service all reload         # re-read notes.json
+noctalia msg plugin remo/noctes:service all reload         # re-read notes.json
 ```
 
 `new` and `open` both select the note, so opening the panel afterwards lands
 straight in its editor. That makes a keybind of
-`noctalia msg plugin noctes/noctes:service all new` plus
-`noctalia msg panel-open noctes/noctes:panel` a one-shot quick-note.
+`noctalia msg plugin remo/noctes:service all new` plus
+`noctalia msg panel-open remo/noctes:panel` a one-shot quick-note.
 
 ## tools/noctes-scatter
 
@@ -244,7 +244,7 @@ on, where a fullscreen window would hide a new post-it immediately.
 ## Storage
 
 `notes.json` in the folder given by the `save_path` setting, or in the plugin's
-own data directory (`~/.local/state/noctalia/plugins/data/noctes/noctes`) when
+own data directory (`~/.local/state/noctalia/plugins/data/remo/noctes`) when
 that setting is empty. The file is a plain JSON array of notes, safe to edit by
 hand while Noctalia is not running, or followed by an IPC `reload`.
 
@@ -255,7 +255,7 @@ hand while Noctalia is not running, or followed by an IPC `reload`.
 | Setting | Type | Default | Description |
 | --- | --- | --- | --- |
 | `default_color` | `select` | `auto` | Color new notes get; automatic leaves it to the post-it's key. |
-| `paper_opacity` | `float` | `0.96` | How solid every post-it is; the text stays fully opaque. |
+| `paper_opacity` | `float` | `0.96` | How solid every post-it is; the text stays fully opaque. Step 0.02. |
 | `theme_colors` | `bool` | `true` | Paint every post-it from the Noctalia palette, which tracks the wallpaper. |
 | `save_path` | `string` | *(empty)* | Folder for `notes.json`; empty uses the plugin data directory. |
 
@@ -278,7 +278,7 @@ hand while Noctalia is not running, or followed by an IPC `reload`.
 | `font_size` | `int` | `16` | Body font size; the title is three points larger. A handwriting font needs more size than a UI font to stay legible. |
 | `max_lines` | `int` | `14` | Body lines drawn before the text is elided. |
 | `show_title` | `bool` | `true` | Draw the note title above the body. |
-| `paper_opacity` | `float` | `0.0` | Overrides the plugin-wide opacity for this sheet; 0 follows it. |
+| `paper_opacity` | `float` | `0.0` | Overrides the plugin-wide opacity for this sheet; 0 follows it. Step 0.02. |
 | `shadow` | `bool` | `true` | Draw the drop shadow. |
 | `use_theme_colors` | `select` | `inherit` | Whether this sheet follows the theme: inherit the plugin-wide switch, or force it on or off. |
 | `font_path` | `string` | `PatrickHand-Regular.ttf` | Font the note is drawn in. Plugin-relative, absolute or `~` path; empty falls back to the shell font. |

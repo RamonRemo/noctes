@@ -1,6 +1,6 @@
 # noctes
 
-A Noctalia plugin source holding one plugin: **`noctes/noctes`**, sticky notes
+A Noctalia plugin source holding one plugin: **`remo/noctes`**, sticky notes
 that live on the desktop rather than in a panel.
 
 ![Post-its on the desktop](docs/desktop.png)
@@ -16,7 +16,7 @@ have: a hand-written `catalog.toml` at the root and one directory per plugin.
 
 ```sh
 noctalia msg plugins source add noctes path ~/Projetos/noctes
-noctalia msg plugins enable noctes/noctes
+noctalia msg plugins enable remo/noctes
 ```
 
 ## Getting the first one up
@@ -45,7 +45,7 @@ whole interface.
 Straight to a post-it without touching the editor at all, if you prefer:
 
 ```sh
-noctalia msg plugin noctes/noctes:service all desk
+noctalia msg plugin remo/noctes:service all desk
 ```
 
 `.luau` edits hot-reload. Manifest edits need `noctalia msg config-reload`, and
@@ -95,6 +95,11 @@ before reloading, always.
 
 **`rotation` is radians**, not degrees. `0.05` is about three degrees.
 
+**A numeric setting without `step` gets 1.0.** Not "continuous" - 1.0. A float
+slider from 0 to 1 then has exactly two reachable values, and the setting looks
+broken rather than coarse. Declare `step` on every `float`, finer than the
+range, with the default landing on a boundary.
+
 **A plugin widget is centered at its natural size** inside the widget box, so it
 carries its own size; `flexGrow` does not stretch it to the box.
 
@@ -119,7 +124,7 @@ desktop widget already on screen: two sheets can end up on the new code and two
 on the old, with no error anywhere. After a code change:
 
 ```sh
-noctalia msg plugins disable noctes/noctes && noctalia msg plugins enable noctes/noctes
+noctalia msg plugins disable remo/noctes && noctalia msg plugins enable remo/noctes
 ```
 
 Toggling a plugin *setting* is different - that repaints everything at once, and

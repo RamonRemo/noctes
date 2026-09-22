@@ -1,6 +1,6 @@
 [Unit]
 Description=Scatter new Noctalia post-it widgets (tilt, key, no background)
-Documentation=file:%h/Projetos/noctes/noctes/README.md
+Documentation=file:%h/Projetos/remo/noctes/README.md
 
 [Service]
 Type=oneshot

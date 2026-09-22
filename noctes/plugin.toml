@@ -1,6 +1,6 @@
-id          = "noctes/noctes"
+id          = "remo/noctes"
 name        = "Noctes"
-version     = "0.15.0"
+version     = "0.15.1"
 plugin_api  = 26
 author      = "remo"
 license     = "MIT"
@@ -157,6 +157,7 @@ entry = "note.luau"
   default         = 0.0
   min             = 0.0
   max             = 1.0
+  step            = 0.02
 
   [[desktop_widget.setting]]
   key             = "shadow"
@@ -226,6 +227,7 @@ description_key = "settings.paper_opacity_all.description"
 default         = 0.96
 min             = 0.2
 max             = 1.0
+step            = 0.02
 
 [[setting]]
 key             = "save_path"

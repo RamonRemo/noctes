@@ -203,7 +203,7 @@ local function openPanel()
   -- togglePanel is the only entry point, so opening an already-open panel would
   -- close it. The panel publishes its own state for exactly this check.
   if noctalia.state.get("noctes.panelOpen") ~= true then
-    noctalia.togglePanel("noctes/noctes:panel")
+    noctalia.togglePanel("remo/noctes:panel")
   end
 end
 
