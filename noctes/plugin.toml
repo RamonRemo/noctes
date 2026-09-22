@@ -1,6 +1,6 @@
 id          = "remo/noctes"
 name        = "Noctes"
-version     = "0.16.3"
+version     = "0.17.0"
 plugin_api  = 26
 author      = "remo"
 license     = "MIT"
@@ -217,6 +217,16 @@ key             = "theme_colors"
 type            = "bool"
 label_key       = "settings.theme_colors.label"
 description_key = "settings.theme_colors.description"
+default         = true
+
+# Sheets sit at a small random angle. Off squares every one of them - which
+# means rewriting their rotation in Noctalia's settings, since rotation is host
+# state, so the service shells out to tools/noctes-scatter when this changes.
+[[setting]]
+key             = "tilt"
+type            = "bool"
+label_key       = "settings.tilt.label"
+description_key = "settings.tilt.description"
 default         = true
 
 # How solid the paper is, for every sheet that does not override it.

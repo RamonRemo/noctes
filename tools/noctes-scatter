@@ -25,6 +25,7 @@ Usage:
   noctes-scatter              scatter the post-its that are still untouched
   noctes-scatter --all        re-randomize every post-it, including placed ones
   noctes-scatter --keep-tilt  never touch rotation
+  noctes-scatter --straighten set every post-it back to square
   noctes-scatter --dry-run    print what would change, write nothing
 """
 
@@ -44,9 +45,25 @@ WIDGET_TYPE = "remo/noctes:note"
 MIN_TILT = 0.018
 MAX_TILT = 0.055
 
+TILT_SETTING = re.compile(r'^\s*tilt\s*=\s*(true|false)\s*$', re.M)
+
 HEADER = re.compile(r"^\s*\[desktop_widgets\.widget\.([^.\]]+)\]\s*$")
 SETTINGS_HEADER = re.compile(r"^\s*\[desktop_widgets\.widget\.([^.\]]+)\.settings\]\s*$")
 ANY_TABLE = re.compile(r"^\s*\[")
+
+
+def tilt_wanted(text):
+    """The plugin's own "crooked sheets" switch.
+
+    Without this the two fight: straightening every sheet sets rotation to zero,
+    zero reads as "never scattered", and the next settings write has this tool
+    tilting them all straight back.
+    """
+    block = text.split('[plugin_settings."remo/noctes"]')
+    if len(block) < 2:
+        return True
+    found = TILT_SETTING.search(block[1].split("\n[")[0])
+    return found is None or found.group(1) == "true"
 
 
 def parse_blocks(lines):
@@ -110,6 +127,8 @@ def indent_of(lines, span, fallback):
 def main():
     parser = argparse.ArgumentParser(add_help=True, description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--straighten", action="store_true",
+                        help="set every post-it's rotation to zero")
     parser.add_argument("--all", action="store_true",
                         help="re-randomize every post-it, not only untouched ones")
     parser.add_argument("--keep-tilt", action="store_true",
@@ -121,8 +140,12 @@ def main():
     if not SETTINGS.exists():
         sys.exit(f"not found: {SETTINGS}")
 
-    lines = SETTINGS.read_text().splitlines(keepends=True)
+    text = SETTINGS.read_text()
+    lines = text.splitlines(keepends=True)
     blocks = parse_blocks(lines)
+
+    if not tilt_wanted(text) and not args.straighten:
+        args.keep_tilt = True
 
     sheets = [
         widget_id for widget_id, spans in blocks.items()
@@ -155,9 +178,17 @@ def main():
         untouched = (
             not (key_found and key_found[1].strip('"'))
             or not (bg_found and bg_found[1] == "false")
-            or not (tilt_found and float(tilt_found[1]) != 0.0)
+            or (not args.keep_tilt and not (tilt_found and float(tilt_found[1]) != 0.0))
         )
-        if not (args.all or untouched):
+        if not (args.all or args.straighten or untouched):
+            continue
+
+        if args.straighten:
+            found = read_value(lines, spans["body"], "rotation")
+            if found and float(found[1]) != 0.0:
+                body_indent = indent_of(lines, spans["body"], "    ")
+                replacements[found[0]] = f"{body_indent}rotation = 0.0\n"
+                report.append(f"  {widget_id}: straightened")
             continue
 
         if not args.keep_tilt:

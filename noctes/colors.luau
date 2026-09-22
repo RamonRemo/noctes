@@ -12,9 +12,11 @@ local M = {}
 
 M.NAMES = { "yellow", "orange", "pink", "red", "purple", "blue", "green", "gray" }
 
--- Glass is a paper you can only ask for by name: it is never generated, because
--- a wall of translucent sheets is a wall you cannot read.
+-- Two papers you can only ask for by name. Neither is ever generated: a wall of
+-- translucent sheets is a wall you cannot read, and a wall of black ones is a
+-- wall of holes. Picked deliberately, one of either is a good accent.
 M.GLASS = "glass"
+M.BLACK = "black"
 
 local CLASSIC = {
   yellow = "#FFF0A5",
@@ -84,7 +86,7 @@ function M.isKnown(name)
   if type(name) ~= "string" then
     return false
   end
-  return CLASSIC[name] ~= nil or name == M.GLASS
+  return CLASSIC[name] ~= nil or name == M.GLASS or name == M.BLACK
 end
 
 -- A note carries "" when nobody picked a color: that resolves to a generated
@@ -160,6 +162,12 @@ function M.paper(name, seed, useTheme)
   -- panels, not to plugin widgets.
   if name == M.GLASS then
     return "#FFFFFF52", "on_surface", "on_surface/0.6", "#FFFFFF59"
+  end
+
+  -- Black paper, white ink: the one sheet that reads as written on rather than
+  -- printed, and the only fixed paper whose text is not the dark ink.
+  if name == M.BLACK then
+    return "#1C1F26", "#F3F4F6", "#F3F4F6A6"
   end
 
   if M.isKnown(name) then

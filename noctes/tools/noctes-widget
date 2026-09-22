@@ -10,6 +10,7 @@ Called by the noctes service; usable by hand too:
 
   noctes-widget add --output DP-2 --screen 3440x1440 --avoid compras,trabalho
   noctes-widget remove --key nota-2
+  noctes-widget tilt --square
 
 The key is chosen here rather than by the caller, because the keys already spoken
 for live in settings.toml: the caller only knows which notes exist, not which
@@ -186,6 +187,54 @@ def remove(args):
     print(f'{target} removed, key "{args.key}"')
 
 
+# Rotation is host state, so the "crooked sheets" switch cannot be a render-time
+# decision: every sheet's angle has to be rewritten here. Kept in this file, and
+# not in tools/noctes-scatter, so the plugin directory stays self-contained
+# wherever it was installed from.
+MIN_TILT = 0.018
+MAX_TILT = 0.055
+
+
+def tilt(args):
+    text = SETTINGS.read_text()
+    lines = text.splitlines(keepends=True)
+
+    header = re.compile(r"^\s*\[desktop_widgets\.widget\.(desktop-widget-[0-9a-f]+)\]\s*$")
+    rotation = re.compile(r"^(\s*)rotation\s*=\s*[-\d.]+\s*$")
+
+    changed = 0
+    index = 0
+    while index < len(lines):
+        found = header.match(lines[index])
+        if found is None:
+            index += 1
+            continue
+
+        end = index + 1
+        while end < len(lines) and not lines[end].lstrip().startswith("["):
+            end += 1
+
+        block = "".join(lines[index:end])
+        if f'type = "{WIDGET_TYPE}"' in block:
+            for i in range(index, end):
+                spin = rotation.match(lines[i])
+                if spin:
+                    value = 0.0
+                    if args.random:
+                        value = random.uniform(MIN_TILT, MAX_TILT) * random.choice((-1, 1))
+                    lines[i] = f"{spin.group(1)}rotation = {value:.6f}\n"
+                    changed += 1
+                    break
+        index = end
+
+    if changed == 0:
+        print("no post-it widgets to tilt")
+        return
+
+    commit("".join(lines), "tilt")
+    print(f"{changed} sheet(s) set {'crooked' if args.random else 'square'}")
+
+
 def add(args):
     try:
         width, height = (float(part) for part in args.screen.lower().split("x"))
@@ -276,6 +325,12 @@ def main():
     dropper = sub.add_parser("remove", help="delete the post-it widget bound to a key")
     dropper.add_argument("--key", required=True)
     dropper.set_defaults(run=remove)
+
+    angler = sub.add_parser("tilt", help="set every sheet crooked or square")
+    angle = angler.add_mutually_exclusive_group(required=True)
+    angle.add_argument("--random", action="store_true", help="a fresh small angle each")
+    angle.add_argument("--square", action="store_true", help="rotation zero")
+    angler.set_defaults(run=tilt)
 
     args = parser.parse_args()
 

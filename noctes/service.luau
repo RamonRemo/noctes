@@ -33,7 +33,8 @@
 -- anything, but it validates what it stores, and a color it does not recognise
 -- is quietly reset - which is how glass notes kept coming back blank.
 local PALETTE = {
-  "yellow", "orange", "pink", "red", "purple", "blue", "green", "gray", "glass",
+  "yellow", "orange", "pink", "red", "purple", "blue", "green", "gray",
+  "glass", "black",
 }
 
 local SETTINGS_PATH = "~/.local/state/noctalia/settings.toml"
@@ -443,6 +444,50 @@ local function spawnWidget()
   end, 10000)
 end
 
+-- Rotation is host state, so "crooked sheets: off" cannot be a render-time
+-- decision - it has to rewrite every sheet's rotation in settings.toml. The
+-- helper does that; this just picks which way.
+-- The switch has to be compared against what was last applied, not against a
+-- value held in memory: a config reload restarts this service, so an in-memory
+-- copy is always equal to the setting and the change is never noticed. The last
+-- applied state goes in a file next to the notes.
+local function tiltMarkerPath()
+  if resolvedDir == nil then
+    return nil
+  end
+  return resolvedDir .. "/tilt.state"
+end
+
+local function applyTilt(enabled)
+  local dir = noctalia.pluginDir()
+  local marker = tiltMarkerPath()
+  if dir == nil or marker == nil then
+    return
+  end
+
+  noctalia.writeFile(marker, enabled and "random" or "square")
+  local flag = enabled and "--random" or "--square"
+  noctalia.runAsync({ dir .. "/tools/noctes-widget", "tilt", flag }, nil, 15000)
+end
+
+-- Applies the switch when, and only when, it differs from what is on the desk.
+local function syncTilt()
+  local marker = tiltMarkerPath()
+  if marker == nil then
+    return
+  end
+
+  local wanted = noctalia.getConfig("tilt") ~= false
+  local applied = "random"
+  if noctalia.fileExists(marker) then
+    applied = noctalia.string.trim(noctalia.readFile(marker) or "random")
+  end
+
+  if (applied == "random") ~= wanted then
+    applyTilt(wanted)
+  end
+end
+
 -- Noctalia's desktop-widget editor is what moves, resizes and rotates a sheet,
 -- and there is no Luau call for it - only the IPC command, so the plugin asks
 -- its own CLI. Leaving the editor writes settings.toml, which is what the
@@ -590,6 +635,7 @@ end
 -- re-read rather than writing the in-memory list to a stale directory.
 function onConfigChanged()
   initSavePath(function()
+    syncTilt()
     load()
   end)
 end
@@ -598,5 +644,6 @@ noctalia.state.set("noctes.editing", "")
 publish()
 refreshBoundKeys()
 initSavePath(function()
+  syncTilt()
   load()
 end)

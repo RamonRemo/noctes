@@ -176,8 +176,9 @@ local function colorPicker(note)
   end
 
   -- Dynamic first and glass second: the two that behave rather than just sit
-  -- there. Then the fixed papers.
-  local swatches = { chip("", "wand"), chip(colors.GLASS, "droplet") }
+  -- there. Black third, since it is the other one that is not simply a shade of
+  -- paper. Then the eight papers.
+  local swatches = { chip("", "wand"), chip(colors.GLASS, "droplet"), chip(colors.BLACK, nil) }
   for _, name in ipairs(colors.NAMES) do
     table.insert(swatches, chip(name, nil))
   end
@@ -226,6 +227,15 @@ local function toolbar(note)
       tooltip = noctalia.tr("panel.stick"),
       onClick = function()
         stickNote(note.id)
+      end,
+    }),
+    ui.button({
+      glyph = "settings",
+      variant = "ghost",
+      controlSize = "sm",
+      tooltip = noctalia.tr("panel.settings"),
+      onClick = function()
+        noctalia.openSettings()
       end,
     }),
     ui.button({

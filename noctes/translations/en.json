@@ -11,6 +11,7 @@
   },
   "color": {
     "auto": "Dynamic (follows the theme)",
+    "black": "Black",
     "blue": "Blue",
     "glass": "Glass",
     "gray": "Gray",
@@ -51,6 +52,7 @@
     "not_on_screen": "not on screen",
     "save": "Save",
     "saved": "Saved",
+    "settings": "Plugin settings",
     "stick": "Stick to the desktop",
     "title": "Noctes",
     "title_placeholder": "Title",
@@ -122,6 +124,10 @@
     "theme_colors": {
       "description": "Use the Noctalia palette instead of the classic paper colors. The palette tracks the wallpaper, so every post-it recolors with it.",
       "label": "Paper follows the theme"
+    },
+    "tilt": {
+      "description": "Sheets sit at a small random angle. Turning this off squares every one of them; turning it back on gives each a new angle.",
+      "label": "Crooked sheets"
     },
     "use_theme_colors": {
       "description": "Overrides the plugin-wide setting for this sheet only.",

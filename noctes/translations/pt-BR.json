@@ -11,6 +11,7 @@
   },
   "color": {
     "auto": "Dinamica (segue o tema)",
+    "black": "Preto",
     "blue": "Azul",
     "glass": "Vidro",
     "gray": "Cinza",
@@ -51,6 +52,7 @@
     "not_on_screen": "fora da tela",
     "save": "Salvar",
     "saved": "Salvo",
+    "settings": "Configuracoes do plugin",
     "stick": "Colar na area de trabalho",
     "title": "Noctes",
     "title_placeholder": "Titulo",
@@ -122,6 +124,10 @@
     "theme_colors": {
       "description": "Usa a paleta do Noctalia no lugar das cores classicas de papel. A paleta acompanha o papel de parede, entao todo post-it muda de cor junto.",
       "label": "Papel segue o tema"
+    },
+    "tilt": {
+      "description": "As folhas ficam num angulo aleatorio pequeno. Desligar endireita todas; ligar de novo sorteia um angulo novo para cada uma.",
+      "label": "Folhas tortas"
     },
     "use_theme_colors": {
       "description": "Sobrescreve a opcao do plugin so para esta folha.",

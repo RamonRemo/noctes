@@ -72,8 +72,8 @@ Notes are **dynamic** by default: each picks its own paper and follows the
 shell's palette, which on a generated theme follows your wallpaper.
 
 Pick a chip and it stops following anything - groceries stay yellow forever.
-There is a **glass** chip too: a translucent pane instead of paper, tinted by
-the shell. Sharp, not blurred; a plugin gets no blur.
+Two of the chips are not paper: **glass**, a translucent pane, and **black**,
+the one written in white ink.
 
 A line under the chips always says which mode the note is in.
 
@@ -92,8 +92,8 @@ clean diagonal; details in the notes below.
 ## Settings
 
 Per sheet: size, font size, lines, colour, tape, opacity, title on or off.
-Plugin-wide: default colour, opacity, follow the theme, where `notes.json`
-lives.
+Plugin-wide: default colour, opacity, crooked sheets on or off, follow the
+theme, where `notes.json` lives. The gear in the editor opens them.
 
 Full tables and the IPC commands are in [`noctes/README.md`](noctes/README.md).
 

@@ -21,7 +21,8 @@ when the wallpaper changes - the host resolves role names live, so nothing has
 to reload. Each sheet can override the plugin-wide switch with its own
 *Always* / *Never*.
 
-There is also a **glass** paper: a white veil at about a third alpha with a
+There is also a **black** paper, the one sheet written in white ink rather than
+dark, and a **glass** paper: a white veil at about a third alpha with a
 hairline edge, text in `on_surface` so it flips with the scheme. The sheet reads
 as a translucent pane rather than coloured paper. It is sharp, not frosted - the
 plugin API exposes no blur, and noctalia's own blur is wired to its panels, not
@@ -263,6 +264,7 @@ hand while Noctalia is not running, or followed by an IPC `reload`.
 | --- | --- | --- | --- |
 | `default_color` | `select` | `auto` | Color new notes get; automatic leaves it to the post-it's key. |
 | `paper_opacity` | `float` | `0.96` | How solid every post-it is; the text stays fully opaque. Step 0.02. |
+| `tilt` | `bool` | `true` | Sheets sit at a small random angle. Off squares every one; on gives each a new angle. |
 | `theme_colors` | `bool` | `true` | Paint every post-it from the Noctalia palette, which tracks the wallpaper. |
 | `save_path` | `string` | *(empty)* | Folder for `notes.json`; empty uses the plugin data directory. |
 
@@ -285,7 +287,7 @@ hand while Noctalia is not running, or followed by an IPC `reload`.
 | `font_size` | `int` | `16` | Body font size; the title is three points larger. A handwriting font needs more size than a UI font to stay legible. |
 | `max_lines` | `int` | `14` | Body lines drawn before the text is elided. |
 | `show_title` | `bool` | `true` | Draw the note title above the body. |
-| `paper_opacity` | `float` | `0.0` | Overrides the plugin-wide opacity for this sheet; 0 follows it. Step 0.02. |
+| `opacity_override` | `float` | `0.0` | Overrides the plugin-wide opacity for this sheet; 0 follows it. Step 0.02. |
 | `shadow` | `bool` | `true` | Draw the drop shadow. |
 | `use_theme_colors` | `select` | `inherit` | Whether this sheet follows the theme: inherit the plugin-wide switch, or force it on or off. |
 | `font_path` | `string` | `PatrickHand-Regular.ttf` | Font the note is drawn in. Plugin-relative, absolute or `~` path; empty falls back to the shell font. |

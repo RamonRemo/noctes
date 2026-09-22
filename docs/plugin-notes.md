@@ -60,6 +60,22 @@ noctes does exactly that, in `tools/noctes-scatter` and
 
 Validate before reloading. Always.
 
+## A setting whose effect lives outside the plugin
+
+The "crooked sheets" switch cannot be read at render time, because rotation is
+host state: turning it off means rewriting every sheet's angle in
+`settings.toml`. Two things follow.
+
+A config reload **restarts the service**, so comparing the setting against a
+value held in memory never detects a change - the fresh copy always equals the
+setting. The last applied state has to be persisted; noctes keeps a `tilt.state`
+file next to the notes.
+
+And a watcher that tidies up sheets has to know about the switch too. Straight
+sheets have `rotation = 0.0`, which is exactly what "never been scattered" looks
+like, so the watcher helpfully tilted them all back seconds after they were
+straightened.
+
 ## `rotation` is radians
 
 Not degrees. `0.05` is about three degrees. `-3.0` is upside down, which is how
