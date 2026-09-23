@@ -1,9 +1,0 @@
-[Unit]
-Description=Watch Noctalia settings for newly added post-it widgets
-
-[Path]
-PathModified=%h/.local/state/noctalia/settings.toml
-Unit=noctes-scatter.service
-
-[Install]
-WantedBy=default.target

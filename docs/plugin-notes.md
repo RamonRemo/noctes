@@ -70,9 +70,9 @@ value held in memory never detects a change - the fresh copy always equals the
 setting. The last applied state has to be persisted; noctes keeps a `tilt.state`
 file next to the notes.
 
-And a watcher that tidies up sheets has to know about the switch too. Straight
+And the routine that tidies up sheets has to know about the switch too. Straight
 sheets have `rotation = 0.0`, which is exactly what "never been scattered" looks
-like, so the watcher helpfully tilted them all back seconds after they were
+like, so the tidy-up helpfully tilted them all back seconds after they were
 straightened.
 
 ## `rotation` is radians
@@ -168,7 +168,7 @@ is the reliable path.
 ## The widget editor holds new widgets in memory
 
 A widget added in the editor is not in `settings.toml` until Done is pressed.
-Anything of yours that reads that file - a watcher, a tool, the plugin itself -
+Anything of yours that reads that file - a tool, the plugin itself -
 sees nothing until then. Two separate "it is broken" reports turned out to be
 this.
 

@@ -59,10 +59,8 @@ note takes its sheet off the desktop too. Same thing over IPC:
 noctalia msg plugin remo/noctes:service all desk
 ```
 
-The desktop-widget editor still works, and `tools/noctes-scatter` fixes up what
-it produces (see below), but the editor's own output is always an untilted,
-keyless, backgrounded sheet, because those three fields are host state a plugin
-cannot set.
+The desktop-widget editor still works: its sheets arrive untilted, keyless and
+framed, and the service adopts them.
 
 Screenshots, the pitch and a walk through the first setup are in the
 [repository README](../README.md). The host quirks this code is shaped around
@@ -79,7 +77,7 @@ The key exists because a desktop widget has no identity of its own - the host
 hands a widget entry no id, so two sheets run the same code with no way to tell
 themselves apart, and the only thing that differs between them is their own
 settings. Nobody has to type one: creating a post-it generates `nota-N`, and so
-do the stick button and `noctes-scatter`. Set one by hand only to point a
+does the stick button. Set one by hand only to point a
 particular sheet at a particular note, in that widget's settings.
 
 A post-it whose key matches no note yet is blank; clicking it creates the note
@@ -132,116 +130,14 @@ plugin cannot default them and cannot randomize them at creation:
   (`0.05` is about 3 degrees). A couple of degrees either way is what stops a
   row of post-its from looking like a grid.
 
-Two ways around that, both of which edit `settings.toml` directly:
+The way around both is `tools/noctes-widget`, which edits that file directly -
+backing it up, validating with `noctalia config validate` and restoring on
+failure. It is the only thing here that writes outside the plugin's own data
+directory, and the only process the plugin spawns.
 
-- `noctes/tools/noctes-widget`, which the panel's New button runs. It appends
-  the widget itself, so nothing needs fixing afterwards, and `remove --key`
-  takes one back off.
-- `tools/noctes-scatter`, for widgets that came from the desktop-widget editor.
-  Its systemd path unit runs it whenever `settings.toml` changes, so an editor
-  sheet is tilted, keyed and unbackgrounded a couple of seconds later.
-
-The host centers a plugin widget's tree at its natural size, so the paper
-carries its own size through `paper_width` / `paper_height` rather than
-stretching to the widget box.
-
-## Usage
-
-### Desktop post-it
-
-Add the `note` desktop widget from Noctalia's desktop-widget editor
-(`noctalia msg desktop-widgets-edit`), then set its `key`. Clicking the paper
-opens the panel on that note.
-
-Deleting is deliberately panel-only: a desktop widget has no confirmation step,
-and a stray click on the wallpaper should not destroy a note.
-
-Post-its are background surfaces, so they sit above the wallpaper and below
-every window. On a tiling compositor they are visible on empty workspaces and in
-the overview.
-
-### Bar widget
-
-Shows the note count and opens the panel. Middle click opens the plugin's
-settings, as with every Noctalia bar widget.
-
-### Panel
-
-Floating and centered by default; Noctalia's own per-plugin `panel_position`
-overrides it.
-
-The move button - in both the list header and the editor, since that is where
-someone already is when they decide a sheet sits wrong - hands the desk to
-Noctalia's widget editor - the only
-thing that can move, resize or rotate a sheet - and closes the panel, which
-otherwise floats over the desk being rearranged. Press Done in the editor when
-finished; leaving it writes `settings.toml`, which is what the scatter watcher
-listens for.
-
-The toolbar says which output the sheet is on, or *not on screen* for a note
-with no widget - a post-it on the other monitor is the usual reason a note looks
-like it exists nowhere - and offers a board button that sticks it back.
-
-One view, the editor: retitle, edit the body, recolor, stick a loose note to the desktop, delete. There is no list - the post-its are already on screen, and picking one means clicking it. The editor has its own New button, so a run of notes does not
-need a trip back to the list between each one. There is no pinning: every note
-is a sheet at a fixed place on the desktop already. Edits autosave about a second after typing stops, and on
-close, and the Save button writes and closes the panel. Autosave will not empty a note that had text in it - `ui.input` is
-uncontrolled, and a stray empty change should not erase a note - so clearing one
-on purpose needs the Save button. The first color chip is *automatic*, which
-clears a note's color and lets the post-it derive one from its key.
-
-### IPC
-
-```sh
-noctalia msg plugin remo/noctes:service all desk           # note + desktop widget
-noctalia msg plugin remo/noctes:service all move           # toggle the widget editor
-noctalia msg plugin remo/noctes:service all new            # empty note
-noctalia msg plugin remo/noctes:service all new "buy milk" # note with a body
-noctalia msg plugin remo/noctes:service all open work      # select the "work" note,
-                                                           # creating it if absent
-noctalia msg plugin remo/noctes:service all reload         # re-read notes.json
-```
-
-`new` and `open` both select the note, so opening the panel afterwards lands
-straight in its editor. That makes a keybind of
-`noctalia msg plugin remo/noctes:service all new` plus
-`noctalia msg panel-open remo/noctes:panel` a one-shot quick-note.
-
-## tools/noctes-scatter
-
-```sh
-tools/noctes-scatter              # scatter the post-its that are still untouched
-tools/noctes-scatter --all        # re-randomize every post-it
-tools/noctes-scatter --keep-tilt  # never touch rotation
-tools/noctes-scatter --dry-run    # report only
-```
-
-Walks `settings.toml` and, for every post-it widget that is still untouched -
-no key, or background still on, or rotation exactly zero - gives it a random
-tilt between about 1 and 3 degrees, turns the host background off, and assigns a
-`nota-N` key. The key is what the paper color, folded corner and tape are derived
-from, so handing out distinct keys is what makes a fresh post-it look unlike its
-neighbours. Widgets that already have all three are left alone, which makes the
-command idempotent.
-
-It backs the file up, validates with `noctalia config validate` before keeping
-the change, restores the backup if validation fails, and reloads on success.
-
-### Running it automatically
-
-`tools/systemd/` holds a user path unit that runs the command two seconds after
-`settings.toml` changes, which covers the desktop-widget editor writing on its
-way out:
-
-```sh
-ln -s "$PWD"/tools/systemd/noctes-scatter.{service,path} ~/.config/systemd/user/
-systemctl --user daemon-reload
-systemctl --user enable --now noctes-scatter.path
-```
-
-Stop it with `systemctl --user disable --now noctes-scatter.path`. The unit's own
-write re-triggers the watch once, and that run finds nothing to change and exits
-without writing, so it settles rather than looping.
+Sheets added through Noctalia's widget editor arrive square, keyless and framed.
+The service notices them on its next look at the settings file and adopts them:
+a key, an angle, no frame.
 
 ### Which screen a new post-it lands on
 

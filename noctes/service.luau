@@ -56,10 +56,19 @@ local function publish()
   publishPrefs()
 end
 
-local function refreshBoundKeys()
-  desk.boundKeys(function(bound)
+-- A sheet added through Noctalia's widget editor arrives with no key, square
+-- and framed, because those are fields a plugin cannot set as it is created.
+-- Adopting them here is what keeps that route working without a file watcher.
+local function refreshBoundKeys(adopt)
+  desk.boundKeys(function(bound, loose)
     boundKeys = bound
     noctalia.state.set("noctes.boundKeys", boundKeys)
+
+    if loose > 0 and adopt ~= false then
+      desk.scatter(function()
+        refreshBoundKeys(false)
+      end)
+    end
   end)
 end
 

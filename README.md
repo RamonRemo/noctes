@@ -44,19 +44,10 @@ noctalia msg plugins source add noctes path ~/Projetos/noctes
 noctalia msg plugins enable remo/noctes
 ```
 
-Optional, and worth it. Rotation and the host's widget background are fields a
-plugin cannot write, so a sheet added through Noctalia's own widget editor comes
-out square and framed. This watcher fixes that a couple of seconds after the
-editor closes:
-
-```sh
-ln -s ~/Projetos/noctes/noctes/tools/systemd/noctes-scatter.{service,path} ~/.config/systemd/user/
-systemctl --user daemon-reload
-systemctl --user enable --now noctes-scatter.path
-```
-
-Without it, run `noctes/tools/noctes-widget scatter` by hand after using the
-editor. Everything created from the panel is already correct.
+That is the whole install. Sheets added through Noctalia's own widget editor
+arrive square, keyless and framed - those are fields a plugin cannot set as a
+widget is created - and the service adopts them a moment later, no watcher
+required.
 
 ## The first sticker
 
@@ -67,8 +58,9 @@ Noctalia:
 2. Add a **Noctes** widget
 3. **Done**
 
-It appears square and grey in a dark frame; closing the editor is the watcher's
-cue to tilt it, colour it and drop the frame.
+It appears square and grey in a dark frame. Give it a second: the service
+notices a sheet with no note behind it, tilts it, colours it and drops the
+frame.
 
 Then **click the sheet**. Everything after that happens in the panel:
 

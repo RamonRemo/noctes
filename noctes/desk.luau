@@ -64,6 +64,10 @@ end
 -- Which keys actually have a sheet, and on which output. The panel needs this
 -- to tell a stuck note from a loose one, and a sheet on the other monitor is
 -- the usual reason a note looks like it exists nowhere.
+--
+-- onResult also gets the number of sheets with no key at all. Those are the
+-- ones Noctalia's own widget editor produces, since a plugin cannot fill in a
+-- widget's settings as it is created.
 function M.boundKeys(onResult)
   noctalia.readFileAsync(noctalia.expandPath(SETTINGS_PATH), function(contents, err)
     if contents == nil then
@@ -78,17 +82,25 @@ function M.boundKeys(onResult)
       end
     end
 
-    local bound = {}
+    local bound, keyed = {}, {}
     for id, body in string.gmatch(contents, "%[desktop_widgets%.widget%.([%w%-]+)%.settings%]([^%[]*)") do
       if outputs[id] ~= nil then
         local key = string.match(body, 'key%s*=%s*"([^"]*)"')
         if key ~= nil and key ~= "" then
+          keyed[id] = true
           table.insert(bound, { key = key, output = outputs[id] })
         end
       end
     end
 
-    onResult(bound)
+    local loose = 0
+    for id in pairs(outputs) do
+      if not keyed[id] then
+        loose = loose + 1
+      end
+    end
+
+    onResult(bound, loose)
   end)
 end
 
@@ -135,6 +147,18 @@ function M.remove(key, onDone)
     return
   end
   noctalia.runAsync({ path, "remove", "--key", key }, function()
+    onDone()
+  end, TIMEOUT_MS)
+end
+
+-- Gives a key, an angle and no background panel to sheets that have none: the
+-- state Noctalia's widget editor leaves them in.
+function M.scatter(onDone)
+  local path = tool()
+  if path == nil then
+    return
+  end
+  noctalia.runAsync({ path, "scatter" }, function()
     onDone()
   end, TIMEOUT_MS)
 end
