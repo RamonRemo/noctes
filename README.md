@@ -7,18 +7,24 @@ tape on top, written in a handwriting font, in a colour the shell chooses.
 
 ![Noctes on the desktop](docs/hero.jpg)
 
-## The paper follows the wallpaper
+## The paper can follow the wallpaper
 
-A note with no colour of its own draws from Noctalia's palette, and on a
-generated theme that palette comes from the wallpaper. Change the wallpaper and
-the whole wall recolours itself - same notes, same settings, one wallpaper
-apart:
+**Optional, and on by default.** A note with no colour of its own draws from
+Noctalia's palette, and on a generated theme that palette comes from the
+wallpaper - so changing the wallpaper recolours the wall. Three wallpapers,
+three palettes:
 
-![The same notes under two wallpapers](docs/theme.jpg)
+![Noctes under three wallpapers](docs/theme.jpg)
 
-Want a sheet to stop moving? Pick a chip and it is fixed for good. Eight papers,
-plus two that are not paper: **black**, the one sheet written in white ink, and
-**glass**, a translucent pane whose text flips with the scheme.
+The bottom two are the same four notes, and two of them do not move: a sheet
+whose colour was picked by hand keeps it whatever the theme does. Eight papers
+to pick from, plus two that are not paper: **black**, the one sheet written in
+white ink, and **glass**, a translucent pane whose text flips with the scheme.
+
+Dropping the theme entirely is one switch - *Paper follows the theme*,
+plugin-wide, with an *Always* / *Never* override on each sheet. Off, the sheets
+that have no colour of their own draw from eight classic papers instead of the
+palette.
 
 ## Writing on them
 
@@ -40,22 +46,23 @@ there is no note list, because the notes are already on screen.
 
 ## Install
 
+Needs `python3`, which puts the sheets on the desktop - see
+[Dependencies](noctes/README.md#dependencies).
+
 ```sh
 git clone https://github.com/RamonRemo/noctes.git ~/noctes
 noctalia msg plugins source add noctes path ~/noctes
 noctalia msg plugins enable remo/noctes
-```
-
-A plugin cannot place a desktop widget on its own, so the first sheet comes from
-**Settings -> Desktop -> Widgets -> Toggle Editor**: add a *Noctes* widget and
-press Done. It arrives square and grey in a dark frame; a second later the
-service tilts it, colours it and drops the frame. Click it and write.
-
-Every sheet after that comes from the panel's **+**, or from a terminal:
-
-```sh
 noctalia msg plugin remo/noctes:service all desk
 ```
+
+That last line puts the first sheet on the screen you are working on, tilted and
+coloured. Click it and write. Every sheet after that comes from the panel's
+**+**, or from the same command again.
+
+Noctalia's own **Settings -> Desktop -> Widgets -> Toggle Editor** works too, if
+you would rather click: a widget added there arrives square and grey in a dark
+frame, and the service adopts it a second later - key, angle, no frame.
 
 ## IPC
 
