@@ -152,7 +152,7 @@ entry = "note.luau"
   # matching name makes the host shadow one with the other and warn about it.
   [[desktop_widget.setting]]
   key             = "opacity_override"
-  type            = "float"
+  type            = "double"
   label_key       = "settings.opacity_override.label"
   description_key = "settings.opacity_override.description"
   default         = 0.0
@@ -232,7 +232,7 @@ default         = true
 # How solid the paper is, for every sheet that does not override it.
 [[setting]]
 key             = "paper_opacity"
-type            = "float"
+type            = "double"
 label_key       = "settings.paper_opacity_all.label"
 description_key = "settings.paper_opacity_all.description"
 default         = 0.96

@@ -64,6 +64,7 @@
       "label": "Cor do papel"
     },
     "default_color": {
+      "description": "Cor que as notas novas recebem. Automatica deixa a cargo da chave da folha.",
       "label": "Cor padrao"
     },
     "fold": {

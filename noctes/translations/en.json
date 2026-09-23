@@ -64,6 +64,7 @@
       "label": "Paper color"
     },
     "default_color": {
+      "description": "Colour new notes get. Automatic leaves it to the sheet's key.",
       "label": "Default color"
     },
     "fold": {
