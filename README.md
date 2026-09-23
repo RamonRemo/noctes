@@ -1,29 +1,36 @@
-# noctes - stickers for noctalia
+# Noctes - Stickers for Noctalia
 
-You know the notes. Fridge door, edge of a monitor, stuck to the page you meant
-to come back to. You never *open* them. They are just there, in the corner of
-your eye, until the thing is done and the paper comes off.
+**Noctes puts sticky notes on your desktop.** Not in a window, not in a list -
+on the wallpaper itself, below every window, where you already look. Each note
+is its own desktop widget: a sheet of paper at a small random angle, a strip of
+tape on top, written in a handwriting font, in a colour the shell chooses.
 
-Software forgot that. Notes became apps: a window to raise, a list to scroll, a
-sync icon. A sticky note has no inbox. It is a square of colored paper with four
-words on it, stuck where you already look.
+It is also properly configurable. Paper size, font size, tilt, tape, opacity and
+colour are per sheet; defaults, theme following and storage path are plugin-wide.
+Notes live in one plain JSON file - no database, no sync, no account. Delete the
+plugin and your notes are still readable on disk.
 
-So: little sheets on your desktop, slightly crooked, a strip of tape on top,
-written in a hand that is not your system font. Above the wallpaper, below every
-window - never in the way, always there when you clear the screen.
+The colours are the part people notice. A note with no colour of its own draws
+from Noctalia's palette, and on a generated theme that palette follows your
+wallpaper. Change the wallpaper and the whole wall recolours itself.
 
-And they take noctalia's colors. Change the wallpaper and the whole wall changes
-with it. Nobody configures that. It just keeps happening.
+![Noctes on the desktop](docs/hero.jpg)
 
-![noctes on the desktop](docs/hero.jpg)
+## What it ships
 
-## What it is
+Four entries, all thin clients of one headless service that owns the note list
+and is the only thing that touches disk:
 
-A plugin for [Noctalia](https://noctalia.dev). Stickers on the desktop, a small
-panel to write in, a bar widget with the count.
+| Entry | What it is |
+| --- | --- |
+| `service` | Owns `notes.json`, publishes state, runs the commands |
+| `note` | The `[[desktop_widget]]` - one sheet per instance |
+| `panel` | The editor, and the only surface that can take the keyboard |
+| `bar` | Note count, opens the panel |
 
-Notes are plain text in a plain JSON file. Nothing syncs. Delete the plugin and
-they are still readable on disk.
+Writes to disk are debounced onto a two second tick, and each sheet skips
+redrawing when a state publish did not change the note it shows - with a wall of
+sheets, every keystroke would otherwise rebuild all of them.
 
 ## Install
 
@@ -33,8 +40,10 @@ noctalia msg plugins source add noctes path ~/Projetos/noctes
 noctalia msg plugins enable remo/noctes
 ```
 
-Optional, and worth it - a watcher that tidies up sheets added through
-noctalia's widget editor:
+Optional, and worth it. Rotation and the host's widget background are fields a
+plugin cannot write, so a sheet added through Noctalia's own widget editor comes
+out square and framed. This watcher fixes that a couple of seconds after the
+editor closes:
 
 ```sh
 ln -s ~/Projetos/noctes/tools/systemd/noctes-scatter.{service,path} ~/.config/systemd/user/
@@ -42,25 +51,28 @@ systemctl --user daemon-reload
 systemctl --user enable --now noctes-scatter.path
 ```
 
+Without it, run `tools/noctes-scatter` by hand after using the editor.
+Everything created from the panel is already correct.
+
 ## The first sticker
 
-Fiddly once, then never again. A plugin cannot place a desktop widget on its
-own, so noctalia's editor does the first one:
+A plugin cannot place a desktop widget on its own, so the first one comes from
+Noctalia:
 
 1. **Settings -> Desktop -> Widgets -> Toggle Editor**
 2. Add a **Noctes** widget
 3. **Done**
 
-It shows up square and grey in a dark panel. Wait a second: closing the editor
-is the watcher's cue to tilt it, colour it and drop the panel.
+It appears square and grey in a dark frame; closing the editor is the watcher's
+cue to tilt it, colour it and drop the frame.
 
-Now **click the sheet**. Everything else happens in the panel:
+Then **click the sheet**. Everything after that happens in the panel:
 
 | | |
 | --- | --- |
-| ![The note editor](docs/editor.png) | Title, body, colour. **+** makes another sticker, sheet and all. The arrows hand the desk to noctalia's widget editor for dragging. The bin takes note and sheet together. |
+| ![The note editor](docs/editor.png) | Title, body, colour. **+** creates the next sticker - note and widget together, already tilted. The arrows hand the desk back to the widget editor for dragging and resizing. The gear opens the plugin settings. The bin deletes note and sheet as one. |
 
-Skipping the editor entirely also works:
+Skipping the editor entirely:
 
 ```sh
 noctalia msg plugin remo/noctes:service all desk
@@ -68,42 +80,72 @@ noctalia msg plugin remo/noctes:service all desk
 
 ## Colours
 
-Notes are **dynamic** by default: each picks its own paper and follows the
-shell's palette, which on a generated theme follows your wallpaper.
+A note with no colour of its own is **dynamic**: it derives one from its key, so
+two sheets rarely match, and each sheet keeps its look across restarts. With
+*Paper follows the theme* on (the default) that draws from four palette roles -
+`primary`, `secondary`, `tertiary`, `error` - each paired with its own `on_*`
+text role. Off, it draws from eight classic papers with a few points of per-note
+tint jitter.
 
-Pick a chip and it stops following anything - groceries stay yellow forever.
-Two of the chips are not paper: **glass**, a translucent pane, and **black**,
-the one written in white ink.
+Pick a chip and the note stops following anything. Eight papers, plus two that
+are not paper:
 
-A line under the chips always says which mode the note is in.
+- **glass** - a white veil at about a third alpha with a hairline edge, text in
+  `on_surface` so it flips with the scheme. Sharp, not frosted: the plugin API
+  exposes no blur, and Noctalia's own blur is wired to its panels.
+- **black** - `#1C1F26` with white ink, the one sheet that is written on rather
+  than printed.
 
-## How it behaves
+A caption under the chips always names the mode the note is in.
 
-**You write in the panel, not on the sheet.** Sheets are painted below your
-windows, where nothing can take the keyboard. Clicking one opens it.
+## Behaviour
 
-**No list of notes.** They are already on screen. Pick one by looking at it.
+**Typing happens in the panel.** Desktop widgets are background layer-shell
+surfaces and cannot take keyboard focus - a property of the surface, not a
+choice. Clicking a sheet opens the panel on that note.
 
-**No folded corners.** They looked like a printing error. A plugin cannot draw a
-clean diagonal; details in the notes below.
+**There is no note list.** The notes are already on screen; picking one means
+clicking it. The panel is a single view.
 
-**Deleting takes the sheet with it.** The note and the sticker are one thing.
+**No folded corners.** The `ui.*` vocabulary has no rotation, clipping or vector
+primitive, so a diagonal can only be a staircase of rectangles, and the host's
+rotation resamples it into visible hatching. Off by default, selectable per
+sheet.
+
+**Deleting removes the widget too.** A note and its sticker are one object.
 
 ## Settings
 
-Per sheet: size, font size, lines, colour, tape, opacity, title on or off.
-Plugin-wide: default colour, opacity, crooked sheets on or off, follow the
-theme, where `notes.json` lives. The gear in the editor opens them.
+Per sheet, in the widget's own settings: `key`, `color`, `fold`, `tape`,
+`paper_width`, `paper_height`, `font_size`, `max_lines`, `show_title`,
+`opacity_override`, `shadow`, `use_theme_colors`, `font_path`.
 
-Full tables and the IPC commands are in [`noctes/README.md`](noctes/README.md).
+Plugin-wide: `default_color`, `theme_colors`, `tilt`, `paper_opacity`,
+`save_path`. The gear in the editor opens them.
+
+Full tables in [`noctes/README.md`](noctes/README.md).
+
+## IPC
+
+```sh
+noctalia msg plugin remo/noctes:service all desk           # note + widget
+noctalia msg plugin remo/noctes:service all new "buy milk" # note only
+noctalia msg plugin remo/noctes:service all open work      # select a note by key
+noctalia msg plugin remo/noctes:service all move           # toggle the widget editor
+noctalia msg plugin remo/noctes:service all reload         # re-read notes.json
+```
+
+`desk` and `new` both select what they create, so pairing either with
+`noctalia msg panel-open remo/noctes:panel` makes a one-keybind quick note.
 
 ## For the curious
 
 [`docs/plugin-notes.md`](docs/plugin-notes.md) collects what it took to make
-paper look like paper inside a plugin sandbox, and the nine or so things about
-noctalia's plugin API that are written down nowhere and cost an afternoon each.
-Shadows that paint nothing, palette roles that do not exist, sliders with two
-positions. Writing a noctalia plugin? Start there.
+paper look like paper inside a plugin sandbox, and the dozen things about
+Noctalia's plugin API that are documented nowhere and cost an afternoon each:
+where the logs go, boxes that paint nothing, palette roles that do not exist,
+sliders with two positions, settings whose effect lives outside the plugin.
+Writing a Noctalia plugin? Start there.
 
 ## License
 

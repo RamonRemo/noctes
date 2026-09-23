@@ -1,11 +1,11 @@
 id          = "remo/noctes"
 name        = "Noctes"
-version     = "0.17.0"
+version     = "0.17.1"
 plugin_api  = 26
 author      = "remo"
 license     = "MIT"
 icon        = "note"
-description = "Sticky notes pinned to the desktop, edited from a bar panel."
+description = "Configurable stickers for your desktop: one widget per note, theme-aware paper, plain-text storage."
 tags        = ["productivity", "utility"]
 dependencies = ["python3"]
 
