@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
-"""Add or remove a post-it desktop widget in Noctalia's settings.
+"""Manage noctes' desktop widgets inside Noctalia's settings.toml.
 
-Noctalia has no IPC for creating a desktop widget, and a plugin cannot reach the
-host-owned fields anyway (rotation, background, and the widget entry itself), so
-the plugin shells out here: append the widget, give it a random tilt, turn the
-host background off, and bind it to a note key.
+Three fields a plugin cannot reach live in that file: a widget's `rotation`, the
+background panel Noctalia draws behind it, and the widget entry itself. So the
+plugin shells out here, and this is the only thing in noctes that writes outside
+its own data directory.
 
-Called by the noctes service; usable by hand too:
+Every write is guarded the same way: back the file up, write, run
+`noctalia config validate`, restore the backup if it fails, reload on success.
+An unrecognised key in a widget's settings table does not fail gracefully - it
+breaks the parse and takes the shell down with it.
 
-  noctes-widget add --output DP-2 --screen 3440x1440 --avoid compras,trabalho
-  noctes-widget remove --key nota-2
-  noctes-widget tilt --square
+  noctes-widget add --output DP-2 --screen 3440x1440 [--avoid a,b] [--key k]
+  noctes-widget remove --key shopping
+  noctes-widget tilt --random | --square
+  noctes-widget scatter [--all] [--dry-run]
 
-The key is chosen here rather than by the caller, because the keys already spoken
-for live in settings.toml: the caller only knows which notes exist, not which
-widgets are bound. The chosen key is printed as "key=<key>" on the first line.
+`add` prints `key=<key>` on its first line; the service reads it back to bind a
+note to the sheet it just created.
 """
 
 import argparse
@@ -27,105 +30,195 @@ from datetime import date
 from pathlib import Path
 
 SETTINGS = Path.home() / ".local/state/noctalia/settings.toml"
-WIDGET_TYPE = "remo/noctes:note"
+PLUGIN_ID = "remo/noctes"
+WIDGET_TYPE = f"{PLUGIN_ID}:note"
 
+# Radians. Enough to read as hand-placed, not enough to look broken.
 MIN_TILT = 0.018
 MAX_TILT = 0.055
 
-# Where a new sheet lands when nothing says otherwise: a cascade down and right
-# from the top-left, wrapping into a new column every few sheets.
-CASCADE_X = 250
-CASCADE_Y = 240
-PER_COLUMN = 4
-MARGIN = 170
+# Where a new sheet lands: a cascade down and right from the top-left, wrapping
+# into a new column every few sheets.
+CASCADE_X, CASCADE_Y, PER_COLUMN, MARGIN = 250, 240, 4, 170
 
-WIDGET_HEADER = re.compile(r"^\s*\[desktop_widgets\.widget\.(desktop-widget-[0-9a-f]+)\]\s*$")
-SETTINGS_HEADER = re.compile(r"^\s*\[desktop_widgets\.widget\.(desktop-widget-[0-9a-f]+)\.settings\]\s*$")
+WIDGET_HEADER = re.compile(r"^\s*\[desktop_widgets\.widget\.([^.\]]+)\]\s*$")
+SETTINGS_HEADER = re.compile(r"^\s*\[desktop_widgets\.widget\.([^.\]]+)\.settings\]\s*$")
 ORDER_START = re.compile(r"^\s*widget_order\s*=\s*\[\s*$")
+ANY_TABLE = re.compile(r"^\s*\[")
+TILT_SETTING = re.compile(r"^\s*tilt\s*=\s*(true|false)\s*$", re.M)
 
 
-def taken_keys(text):
-    """Keys already bound to any desktop widget in settings.toml."""
-    keys = set()
-    for block in re.split(r"\n(?=\s*\[)", text):
-        head = block.splitlines()[0] if block.splitlines() else ""
-        if ".settings]" not in head:
+# ── The settings file as lines and spans ────────────────────────────────────
+#
+# Not a TOML round-trip on purpose: re-emitting the whole file would reformat
+# settings this plugin has no business touching. Every edit is a line
+# replacement or an insertion at a known index.
+
+
+class Widget:
+    """One desktop widget: its own table, and its settings table if it has one.
+
+    Spans are half-open line ranges covering a table's key-value lines, not its
+    header.
+    """
+
+    def __init__(self, wid):
+        self.id = wid
+        self.body = None
+        self.settings = None
+
+
+def parse(lines):
+    """Every desktop widget in the file, in document order."""
+    widgets, order = {}, []
+    index = 0
+    while index < len(lines):
+        body = WIDGET_HEADER.match(lines[index])
+        settings = SETTINGS_HEADER.match(lines[index])
+        if not body and not settings:
+            index += 1
             continue
-        found = re.search(r'^\s*key\s*=\s*"([^"]*)"', block, re.M)
-        if found and found.group(1):
-            keys.add(found.group(1))
-    return keys
+
+        start = index + 1
+        end = start
+        while end < len(lines) and not ANY_TABLE.match(lines[end]):
+            end += 1
+
+        wid = (body or settings).group(1)
+        if wid not in widgets:
+            widgets[wid] = Widget(wid)
+            order.append(wid)
+        if settings:
+            widgets[wid].settings = (start, end)
+        else:
+            widgets[wid].body = (start, end)
+        index = end
+
+    return [widgets[wid] for wid in order]
 
 
-def free_key(text, prefix, avoid):
-    used = taken_keys(text) | {part for part in avoid.split(",") if part}
+def value(lines, span, key):
+    """(line index, raw value) for a key in a span, or None."""
+    if span is None:
+        return None
+    pattern = re.compile(rf"^\s*{re.escape(key)}\s*=\s*(.+?)\s*$")
+    for i in range(*span):
+        found = pattern.match(lines[i])
+        if found:
+            return i, found.group(1)
+    return None
+
+
+def text_of(lines, span, key):
+    """A quoted value with its quotes stripped, or ""."""
+    found = value(lines, span, key)
+    return found[1].strip('"') if found else ""
+
+
+def indent_of(lines, span, fallback):
+    if span is not None:
+        for i in range(*span):
+            if lines[i].strip():
+                return lines[i][: len(lines[i]) - len(lines[i].lstrip())]
+    return fallback
+
+
+def append_point(lines, span):
+    """Index just past a table's last non-blank line, so an inserted key lands
+    inside the table rather than after the blank line that follows it."""
+    if span is None:
+        return None
+    point = span[0]
+    for i in range(*span):
+        if lines[i].strip():
+            point = i + 1
+    return point
+
+
+def is_note(lines, widget):
+    return widget.body is not None and text_of(lines, widget.body, "type") == WIDGET_TYPE
+
+
+def notes_in(lines):
+    return [w for w in parse(lines) if is_note(lines, w)]
+
+
+def tilt_wanted(text):
+    """The plugin's own "crooked sheets" switch.
+
+    Without this the two fight: straightening every sheet sets rotation to zero,
+    zero reads as "never scattered", and the next settings write has `scatter`
+    tilting them all straight back.
+    """
+    block = text.split(f'[plugin_settings."{PLUGIN_ID}"]')
+    if len(block) < 2:
+        return True
+    found = TILT_SETTING.search(block[1].split("\n[")[0])
+    return found is None or found.group(1) == "true"
+
+
+def random_tilt():
+    return random.uniform(MIN_TILT, MAX_TILT) * random.choice((-1, 1))
+
+
+def commit(lines_or_text, note):
+    """Write, validate, and put the old file back if Noctalia rejects it."""
+    text = lines_or_text if isinstance(lines_or_text, str) else "".join(lines_or_text)
+    backup = SETTINGS.with_suffix(f".toml.bak-noctes-{date.today().isoformat()}")
+    shutil.copy2(SETTINGS, backup)
+    SETTINGS.write_text(text)
+
+    check = subprocess.run(["noctalia", "config", "validate"], capture_output=True, text=True)
+    if check.returncode != 0:
+        shutil.copy2(backup, SETTINGS)
+        sys.exit(f"{note}: config rejected, restored {backup}:\n{check.stdout}{check.stderr}")
+
+    subprocess.run(["noctalia", "msg", "config-reload"], capture_output=True)
+
+
+# ── Placing a new sheet ─────────────────────────────────────────────────────
+
+
+def next_widget_id(text):
+    used = [int(found, 16) for found in re.findall(r"desktop-widget-([0-9a-f]{16})", text)]
+    return f"desktop-widget-{(max(used) + 1 if used else 1):016x}"
+
+
+def free_key(lines, prefix, avoid):
+    """A key no widget holds. The caller knows which notes exist; only this file
+    knows which of them are already bound to a sheet."""
+    used = {text_of(lines, w.settings, "key") for w in notes_in(lines)}
+    used |= {part for part in avoid.split(",") if part}
     index = 1
     while f"{prefix}-{index}" in used:
         index += 1
     return f"{prefix}-{index}"
 
 
-def widget_keys(text):
-    """Post-it widget id -> bound key, for every post-it widget in the file."""
-    is_note_widget, keys = set(), {}
-    for block in re.split(r"\n(?=\s*\[)", text):
-        head = block.splitlines()[0] if block.splitlines() else ""
-        found = WIDGET_HEADER.match(head)
-        if found and f'type = "{WIDGET_TYPE}"' in block:
-            is_note_widget.add(found.group(1))
-            continue
-        found = SETTINGS_HEADER.match(head)
-        if found:
-            key = re.search(r'^\s*key\s*=\s*"([^"]*)"', block, re.M)
-            keys[found.group(1)] = key.group(1) if key else ""
-    return {wid: key for wid, key in keys.items() if wid in is_note_widget and key}
-
-
-def busiest_output(text):
-    """The output that already holds the most post-its.
+def busiest_output(lines):
+    """The output that already holds the most sheets.
 
     A new sheet belongs on the wall the others are on, not on whichever screen
-    happens to hold the focused window - that one is usually the screen being
-    worked on, where a fullscreen window would hide the post-it anyway.
+    holds the focused window - that one is usually the screen being worked on,
+    where a fullscreen window would hide it immediately.
     """
     counts = {}
-    for block in re.split(r"\n(?=\s*\[)", text):
-        head = block.splitlines()[0] if block.splitlines() else ""
-        if WIDGET_HEADER.match(head) is None or f'type = "{WIDGET_TYPE}"' not in block:
+    for widget in notes_in(lines):
+        name = text_of(lines, widget.body, "output")
+        if name:
+            counts[name] = counts.get(name, 0) + 1
+    return max(counts, key=counts.get) if counts else None
+
+
+def free_spot(lines, output, width, height):
+    taken = []
+    for widget in notes_in(lines):
+        if text_of(lines, widget.body, "output") != output:
             continue
-        found = re.search(r'^\s*output\s*=\s*"([^"]*)"', block, re.M)
-        if found:
-            counts[found.group(1)] = counts.get(found.group(1), 0) + 1
-    if not counts:
-        return None
-    return max(counts, key=counts.get)
-
-
-def next_widget_id(text):
-    used = [int(found, 16) for found in
-            re.findall(r"desktop-widget-([0-9a-f]{16})", text)]
-    return f"desktop-widget-{(max(used) + 1 if used else 1):016x}"
-
-
-def existing_on_output(text, output):
-    """Centres of the post-its already on this output, to cascade past them."""
-    spots = []
-    for block in re.split(r"\n(?=\s*\[)", text):
-        head = block.splitlines()[0] if block.splitlines() else ""
-        if WIDGET_HEADER.match(head) is None:
-            continue
-        if f'type = "{WIDGET_TYPE}"' not in block or f'output = "{output}"' not in block:
-            continue
-        cx = re.search(r"^\s*cx\s*=\s*([\d.-]+)", block, re.M)
-        cy = re.search(r"^\s*cy\s*=\s*([\d.-]+)", block, re.M)
+        cx, cy = value(lines, widget.body, "cx"), value(lines, widget.body, "cy")
         if cx and cy:
-            spots.append((float(cx.group(1)), float(cy.group(1))))
-    return spots
+            taken.append((float(cx[1]), float(cy[1])))
 
-
-def free_spot(taken, width, height):
-    """First cascade slot that is not already occupied; a random spot once the
-    cascade runs off the screen."""
     for index in range(64):
         cx = MARGIN + (index // PER_COLUMN) * CASCADE_X
         cy = MARGIN + (index % PER_COLUMN) * CASCADE_Y
@@ -134,105 +227,11 @@ def free_spot(taken, width, height):
         if all(abs(cx - x) > 40 or abs(cy - y) > 40 for x, y in taken):
             return float(cx), float(cy)
 
-    span_x = max(MARGIN + 1, int(width) - MARGIN)
-    span_y = max(MARGIN + 1, int(height) - MARGIN)
+    span_x, span_y = max(MARGIN + 1, int(width) - MARGIN), max(MARGIN + 1, int(height) - MARGIN)
     return float(random.randint(MARGIN, span_x)), float(random.randint(MARGIN, span_y))
 
 
-def commit(text, backup_note):
-    """Write, validate, and put the old file back if Noctalia rejects it."""
-    backup = SETTINGS.with_suffix(f".toml.bak-noctes-{date.today().isoformat()}")
-    shutil.copy2(SETTINGS, backup)
-    SETTINGS.write_text(text)
-
-    check = subprocess.run(["noctalia", "config", "validate"], capture_output=True, text=True)
-    if check.returncode != 0:
-        shutil.copy2(backup, SETTINGS)
-        sys.exit(f"{backup_note}: config rejected, restored {backup}:\n{check.stdout}{check.stderr}")
-
-    subprocess.run(["noctalia", "msg", "config-reload"], capture_output=True)
-
-
-def remove(args):
-    text = SETTINGS.read_text()
-
-    target = None
-    for widget_id, key in widget_keys(text).items():
-        if key == args.key:
-            target = widget_id
-            break
-    if target is None:
-        print(f'no post-it widget bound to "{args.key}"')
-        return
-
-    lines = text.splitlines(keepends=True)
-    out, dropping = [], False
-    header = re.compile(rf"^\s*\[desktop_widgets\.widget\.{re.escape(target)}(\.settings)?\]\s*$")
-    order_entry = re.compile(rf'^\s*"{re.escape(target)}",?\s*$')
-    for line in lines:
-        if header.match(line):
-            dropping = True
-            continue
-        if dropping and line.lstrip().startswith("["):
-            dropping = False
-        if dropping or order_entry.match(line):
-            continue
-        out.append(line)
-
-    text = "".join(out)
-    # The last entry of widget_order must not keep a trailing comma.
-    text = re.sub(r",(\s*\n\s*\])", r"\1", text)
-
-    commit(text, "remove")
-    print(f'{target} removed, key "{args.key}"')
-
-
-# Rotation is host state, so the "crooked sheets" switch cannot be a render-time
-# decision: every sheet's angle has to be rewritten here. Kept in this file, and
-# not in tools/noctes-scatter, so the plugin directory stays self-contained
-# wherever it was installed from.
-MIN_TILT = 0.018
-MAX_TILT = 0.055
-
-
-def tilt(args):
-    text = SETTINGS.read_text()
-    lines = text.splitlines(keepends=True)
-
-    header = re.compile(r"^\s*\[desktop_widgets\.widget\.(desktop-widget-[0-9a-f]+)\]\s*$")
-    rotation = re.compile(r"^(\s*)rotation\s*=\s*[-\d.]+\s*$")
-
-    changed = 0
-    index = 0
-    while index < len(lines):
-        found = header.match(lines[index])
-        if found is None:
-            index += 1
-            continue
-
-        end = index + 1
-        while end < len(lines) and not lines[end].lstrip().startswith("["):
-            end += 1
-
-        block = "".join(lines[index:end])
-        if f'type = "{WIDGET_TYPE}"' in block:
-            for i in range(index, end):
-                spin = rotation.match(lines[i])
-                if spin:
-                    value = 0.0
-                    if args.random:
-                        value = random.uniform(MIN_TILT, MAX_TILT) * random.choice((-1, 1))
-                    lines[i] = f"{spin.group(1)}rotation = {value:.6f}\n"
-                    changed += 1
-                    break
-        index = end
-
-    if changed == 0:
-        print("no post-it widgets to tilt")
-        return
-
-    commit("".join(lines), "tilt")
-    print(f"{changed} sheet(s) set {'crooked' if args.random else 'square'}")
+# ── Commands ────────────────────────────────────────────────────────────────
 
 
 def add(args):
@@ -242,18 +241,20 @@ def add(args):
         sys.exit(f"bad --screen: {args.screen}")
 
     text = SETTINGS.read_text()
+    lines = text.splitlines(keepends=True)
+
     output = args.output
     if not args.force_output:
-        output = busiest_output(text) or args.output
+        output = busiest_output(lines) or args.output
         if output != args.output:
             # Geometry came with the caller's output; without the real size of
             # the chosen one, keep the cascade inside the smaller of the two.
             width, height = min(width, 1920.0), min(height, 1080.0)
 
-    key = args.key or free_key(text, args.key_prefix, args.avoid)
+    key = args.key or free_key(lines, args.key_prefix, args.avoid)
     widget_id = next_widget_id(text)
-    cx, cy = free_spot(existing_on_output(text, output), width, height)
-    tilt = random.uniform(MIN_TILT, MAX_TILT) * random.choice((-1, 1))
+    cx, cy = free_spot(lines, output, width, height)
+    tilt = random_tilt() if tilt_wanted(text) else 0.0
 
     block = (
         f"\n    [desktop_widgets.widget.{widget_id}]\n"
@@ -271,27 +272,22 @@ def add(args):
         f'        key = "{key}"\n'
     )
 
-    lines = text.splitlines(keepends=True)
-    out = []
-    in_order = False
-    placed_in_order = False
+    out, in_order, placed = [], False, False
     for line in lines:
         if ORDER_START.match(line):
             in_order = True
             out.append(line)
             continue
         if in_order and line.strip().startswith("]"):
-            # An empty array has no previous entry to put a comma on.
             if out and out[-1].strip().rstrip(",").startswith('"desktop-widget'):
                 out[-1] = out[-1].rstrip("\n").rstrip(",") + ",\n"
             out.append(f'    "{widget_id}"\n')
             out.append(line)
-            in_order = False
-            placed_in_order = True
+            in_order, placed = False, True
             continue
         out.append(line)
 
-    if not placed_in_order:
+    if not placed:
         sys.exit("no [desktop_widgets] widget_order to extend")
 
     text = "".join(out)
@@ -304,25 +300,168 @@ def add(args):
     print(f"{widget_id} at {cx:.0f},{cy:.0f} on {output}, tilt {tilt:+.3f}")
 
 
+def remove(args):
+    lines = SETTINGS.read_text().splitlines(keepends=True)
+
+    target = None
+    for widget in notes_in(lines):
+        if text_of(lines, widget.settings, "key") == args.key:
+            target = widget.id
+            break
+    if target is None:
+        print(f'no sheet bound to "{args.key}"')
+        return
+
+    header = re.compile(rf"^\s*\[desktop_widgets\.widget\.{re.escape(target)}(\.settings)?\]\s*$")
+    entry = re.compile(rf'^\s*"{re.escape(target)}",?\s*$')
+
+    out, dropping = [], False
+    for line in lines:
+        if header.match(line):
+            dropping = True
+            continue
+        if dropping and ANY_TABLE.match(line):
+            dropping = False
+        if dropping or entry.match(line):
+            continue
+        out.append(line)
+
+    # The last entry of widget_order must not keep a trailing comma.
+    commit(re.sub(r",(\s*\n\s*\])", r"\1", "".join(out)), "remove")
+    print(f'{target} removed, key "{args.key}"')
+
+
+def tilt(args):
+    lines = SETTINGS.read_text().splitlines(keepends=True)
+    changed = 0
+
+    for widget in notes_in(lines):
+        found = value(lines, widget.body, "rotation")
+        if found is None:
+            continue
+        angle = random_tilt() if args.random else 0.0
+        lines[found[0]] = f"{indent_of(lines, widget.body, '    ')}rotation = {angle:.6f}\n"
+        changed += 1
+
+    if changed == 0:
+        print("no sheets to tilt")
+        return
+
+    commit(lines, "tilt")
+    print(f"{changed} sheet(s) set {'crooked' if args.random else 'square'}")
+
+
+def scatter(args):
+    """Fix up sheets added through Noctalia's widget editor.
+
+    They arrive square, keyless and framed, since those are the fields a plugin
+    cannot write. By default only untouched sheets are changed, which makes this
+    safe to run on every settings write.
+    """
+    text = SETTINGS.read_text()
+    lines = text.splitlines(keepends=True)
+    keep_tilt = args.keep_tilt or not tilt_wanted(text)
+
+    replacements, insertions, report = {}, {}, []
+    counter = 0
+    taken = {text_of(lines, w.settings, "key") for w in notes_in(lines)}
+
+    for widget in notes_in(lines):
+        key = text_of(lines, widget.settings, "key")
+        background = value(lines, widget.settings, "background")
+        rotation = value(lines, widget.body, "rotation")
+
+        untouched = (
+            not key
+            or not (background and background[1] == "false")
+            or (not keep_tilt and not (rotation and float(rotation[1]) != 0.0))
+        )
+        if not (args.all or untouched):
+            continue
+
+        changes = []
+        body_indent = indent_of(lines, widget.body, "    ")
+        settings_indent = indent_of(lines, widget.settings, "        ")
+        settings_point = append_point(lines, widget.settings)
+
+        def place(line, span_point, table_needed):
+            """Queue a key, creating the settings table when there is none."""
+            if span_point is not None:
+                insertions.setdefault(span_point, []).append(line)
+                return
+            point = append_point(lines, widget.body)
+            if point not in insertions:
+                insertions[point] = []
+            if table_needed and not any(".settings]" in q for q in insertions[point]):
+                insertions[point].append(
+                    f"\n{settings_indent}[desktop_widgets.widget.{widget.id}.settings]\n"
+                )
+            insertions[point].append(line)
+
+        if not keep_tilt:
+            angle = random_tilt()
+            line = f"{body_indent}rotation = {angle:.6f}\n"
+            if rotation:
+                replacements[rotation[0]] = line
+            else:
+                insertions.setdefault(append_point(lines, widget.body), []).append(line)
+            changes.append(f"tilt {angle:+.3f} rad")
+
+        if not key:
+            counter += 1
+            while f"nota-{counter}" in taken:
+                counter += 1
+            key = f"nota-{counter}"
+            taken.add(key)
+            place(f'{settings_indent}key = "{key}"\n', settings_point, True)
+            changes.append(f'key "{key}"')
+
+        if not (background and background[1] == "false"):
+            line = f"{settings_indent}background = false\n"
+            if background:
+                replacements[background[0]] = line
+            else:
+                place(line, settings_point, True)
+            changes.append("background off")
+
+        if changes:
+            report.append(f"  {widget.id}: {', '.join(changes)}")
+
+    if not report:
+        print("nothing to change")
+        return
+
+    print(f"{len(report)} sheet(s):")
+    print("\n".join(report))
+    if args.dry_run:
+        return
+
+    out = []
+    for i, line in enumerate(lines):
+        out.extend(insertions.get(i, []))
+        out.append(replacements.get(i, line))
+    out.extend(insertions.get(len(lines), []))
+
+    commit(out, "scatter")
+
+
 def main():
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    adder = sub.add_parser("add", help="append a post-it widget")
+    adder = sub.add_parser("add", help="append a sheet")
     adder.add_argument("--key", help="bind to this key instead of generating one")
-    adder.add_argument("--key-prefix", default="nota",
-                       help="stem for the generated key (default: nota)")
-    adder.add_argument("--avoid", default="",
-                       help="comma-separated keys the caller knows are taken")
-    adder.add_argument("--output", required=True,
-                       help="connector to use when no post-it exists yet, e.g. DP-2")
-    adder.add_argument("--force-output", action="store_true",
-                       help="use --output even when other post-its live elsewhere")
+    adder.add_argument("--key-prefix", default="nota", help="stem for a generated key")
+    adder.add_argument("--avoid", default="", help="comma-separated keys the caller knows are taken")
+    adder.add_argument("--output", required=True, help="connector to use when no sheet exists yet")
     adder.add_argument("--screen", required=True, help="WIDTHxHEIGHT of that output")
+    adder.add_argument("--force-output", action="store_true",
+                       help="use --output even when other sheets live elsewhere")
     adder.set_defaults(run=add)
 
-    dropper = sub.add_parser("remove", help="delete the post-it widget bound to a key")
+    dropper = sub.add_parser("remove", help="delete the sheet bound to a key")
     dropper.add_argument("--key", required=True)
     dropper.set_defaults(run=remove)
 
@@ -332,8 +471,13 @@ def main():
     angle.add_argument("--square", action="store_true", help="rotation zero")
     angler.set_defaults(run=tilt)
 
-    args = parser.parse_args()
+    tidy = sub.add_parser("scatter", help="fix up sheets added in Noctalia's widget editor")
+    tidy.add_argument("--all", action="store_true", help="redo every sheet, not only untouched ones")
+    tidy.add_argument("--keep-tilt", action="store_true", help="never touch rotation")
+    tidy.add_argument("--dry-run", action="store_true", help="report without writing")
+    tidy.set_defaults(run=scatter)
 
+    args = parser.parse_args()
     if not SETTINGS.exists():
         sys.exit(f"not found: {SETTINGS}")
     args.run(args)

@@ -28,6 +28,10 @@ and is the only thing that touches disk:
 | `panel` | The editor, and the only surface that can take the keyboard |
 | `bar` | Note count, opens the panel |
 
+`noctes/tools/noctes-widget` is the one piece that writes outside the plugin's
+own data: it adds, removes, tilts and tidies sheets in `settings.toml`, which is
+where a widget's rotation, background and very existence are kept.
+
 Writes to disk are debounced onto a two second tick, and each sheet skips
 redrawing when a state publish did not change the note it shows - with a wall of
 sheets, every keystroke would otherwise rebuild all of them.
@@ -46,13 +50,13 @@ out square and framed. This watcher fixes that a couple of seconds after the
 editor closes:
 
 ```sh
-ln -s ~/Projetos/noctes/tools/systemd/noctes-scatter.{service,path} ~/.config/systemd/user/
+ln -s ~/Projetos/noctes/noctes/tools/systemd/noctes-scatter.{service,path} ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now noctes-scatter.path
 ```
 
-Without it, run `tools/noctes-scatter` by hand after using the editor.
-Everything created from the panel is already correct.
+Without it, run `noctes/tools/noctes-widget scatter` by hand after using the
+editor. Everything created from the panel is already correct.
 
 ## The first sticker
 

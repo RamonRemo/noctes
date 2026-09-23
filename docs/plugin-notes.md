@@ -50,9 +50,8 @@ touches them. If your plugin wants a widget that is tilted, or without the
 rounded panel noctalia draws behind everything, or wants to create a widget at
 all, the only route is editing that file.
 
-noctes does exactly that, in `tools/noctes-scatter` and
-`noctes/tools/noctes-widget`. Both back the file up, run
-`noctalia config validate`, and restore on failure - because:
+noctes does exactly that, in `noctes/tools/noctes-widget`, whose every write backs the file up, runs
+`noctalia config validate`, and restores on failure - because:
 
 > An unrecognized key inside a widget's settings table does not fail
 > gracefully. It breaks the parse and takes the whole shell down with it: bar,

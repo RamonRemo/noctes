@@ -1,9 +1,9 @@
 [Unit]
 Description=Scatter new Noctalia post-it widgets (tilt, key, no background)
-Documentation=file:%h/Projetos/remo/noctes/README.md
+Documentation=file:%h/Projetos/noctes/noctes/README.md
 
 [Service]
 Type=oneshot
 # Noctalia writes settings.toml as the desktop-widget editor closes; the delay
 # lets that write land before the file is read back.
-ExecStart=/bin/sh -c 'sleep 2; exec %h/Projetos/noctes/tools/noctes-scatter'
+ExecStart=/bin/sh -c 'sleep 2; exec %h/Projetos/noctes/noctes/tools/noctes-widget scatter'
