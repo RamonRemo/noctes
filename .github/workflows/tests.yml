@@ -1,0 +1,32 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # tomllib, which the tests read plugin.toml and every write with,
+          # is standard library from 3.11.
+          python-version: '3.11'
+
+      - name: Run the suite
+        run: python3 tests/run
+
+      - name: Check the plugin directory is clean
+        # noctes/ ships as-is to community-plugins. Nothing generated belongs in it.
+        run: |
+          found=$(find noctes -name '__pycache__' -o -name '*.pyc' -o -name '.DS_Store')
+          if [ -n "$found" ]; then
+            echo "$found"
+            echo "generated files inside noctes/"
+            exit 1
+          fi

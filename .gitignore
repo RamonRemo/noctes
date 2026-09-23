@@ -1,2 +1,4 @@
 noctalia.d.luau
 .shots/
+__pycache__/
+*.pyc

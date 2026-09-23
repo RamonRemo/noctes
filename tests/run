@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+"""Run every test. No arguments runs all of them; a name runs one module.
+
+    tests/run
+    tests/run test_commit
+    tests/run -v
+
+Python standard library only, same as the plugin's own tooling, so there is
+nothing to install.
+"""
+
+import sys
+import unittest
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+sys.dont_write_bytecode = True
+
+
+def main():
+    argv = [a for a in sys.argv[1:] if not a.startswith("-")]
+    verbosity = 2 if "-v" in sys.argv[1:] else 1
+
+    loader = unittest.TestLoader()
+    if argv:
+        suite = loader.loadTestsFromNames(argv)
+    else:
+        suite = loader.discover(str(HERE), pattern="test_*.py")
+
+    result = unittest.TextTestRunner(verbosity=verbosity).run(suite)
+    return 0 if result.wasSuccessful() else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

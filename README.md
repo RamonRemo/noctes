@@ -85,6 +85,9 @@ noctalia msg plugin remo/noctes:service all reload         # re-read notes.json
   look like paper inside a plugin sandbox, and the dozen things about Noctalia's
   plugin API that are documented nowhere and cost an afternoon each. Writing a
   Noctalia plugin? Start there.
+- [`tests/README.md`](tests/README.md) - `tests/run` covers the helper that
+  edits Noctalia's `settings.toml`, and the manifest against the translations
+  and docs that have to agree with it. Standard library only.
 
 ## License
 
