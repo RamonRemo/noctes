@@ -26,7 +26,6 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import date
 from pathlib import Path
 
 SETTINGS = Path.home() / ".local/state/noctalia/settings.toml"
@@ -164,7 +163,10 @@ def random_tilt():
 def commit(lines_or_text, note):
     """Write, validate, and put the old file back if Noctalia rejects it."""
     text = lines_or_text if isinstance(lines_or_text, str) else "".join(lines_or_text)
-    backup = SETTINGS.with_suffix(f".toml.bak-noctes-{date.today().isoformat()}")
+    # One fixed name, overwritten on every write. A dated name left one stale
+    # copy of the user's settings behind per day of use, and nothing removed
+    # them; the backup only has to outlive the validate below.
+    backup = SETTINGS.with_suffix(".toml.bak-noctes")
     shutil.copy2(SETTINGS, backup)
     SETTINGS.write_text(text)
 

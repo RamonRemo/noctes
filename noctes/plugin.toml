@@ -1,6 +1,6 @@
 id          = "remo/noctes"
 name        = "Noctes"
-version     = "0.19.0"
+version     = "0.19.1"
 plugin_api  = 26
 author      = "remo"
 license     = "MIT"
@@ -221,7 +221,7 @@ default         = true
 
 # Sheets sit at a small random angle. Off squares every one of them - which
 # means rewriting their rotation in Noctalia's settings, since rotation is host
-# state, so the service shells out to tools/noctes-scatter when this changes.
+# state, so the service runs `tools/noctes-widget tilt` when this changes.
 [[setting]]
 key             = "tilt"
 type            = "bool"
