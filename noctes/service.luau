@@ -241,23 +241,57 @@ local function removeNote(id)
 end
 
 -- Note and sheet in one go: the sheet is created first, because the helper is
--- what picks a key that nothing else holds.
+-- what picks a key that nothing else holds. `fields` is what the note starts
+-- with - the text of an IPC `new`.
 --
 -- With no helper there is no sheet, and the note is still the point: it is
--- created loose, and the panel edits it like any other.
+-- created loose, the panel edits it like any other, and it gets its sheet at
+-- the first start where the helper runs (stickLooseNotes).
 --
 -- `near` is the key of the note the panel was showing. The new sheet lands on
 -- that one's screen, because that is the screen its owner is looking at.
-local function spawnWidget(near)
+local function spawnWidget(near, fields)
+  local content = fields ~= nil and fields.content or nil
   local started = desk.add({ avoid = store.keys(), near = near }, function(key, output)
     markBound(key, output)
-    addNote({ key = key })
+    addNote({ key = key, content = content })
     refreshBoundKeys()
   end)
 
   if started == false then
-    addNote({})
+    addNote({ content = content })
   end
+end
+
+-- A note with no sheet at all, made while python3 was missing, is a note
+-- nobody can reach once another one is newer: the panel has no list, and it
+-- has no key to name over IPC. So once the helper answers, each one gets a
+-- sheet, the way New would have given it one.
+--
+-- One at a time. The helper serializes them anyway, and a failure then stops
+-- the round after its one notification instead of raising one per note; the
+-- next start tries again.
+local function stickLooseNotes()
+  local loose = nil
+  for _, note in ipairs(store.notes) do
+    if (note.key or "") == "" then
+      loose = note
+      break
+    end
+  end
+  if loose == nil then
+    return
+  end
+
+  local id = loose.id
+  desk.add({ avoid = store.keys() }, function(key, output)
+    markBound(key, output)
+    if store.setKey(id, key) ~= nil then
+      publishNotes()
+    end
+    refreshBoundKeys()
+    stickLooseNotes()
+  end)
 end
 
 -- Gives a sheet back to a note whose own was deleted from Noctalia's widget
@@ -367,7 +401,7 @@ end)
 
 -- For keybinds and scripts:
 --   noctalia msg plugin remo/noctes:service all desk
---   noctalia msg plugin remo/noctes:service all new ["text"]
+--   noctalia msg plugin remo/noctes:service all new ["text"]   -- desk, with text
 --   noctalia msg plugin remo/noctes:service all open <key>
 --   noctalia msg plugin remo/noctes:service all move
 --   noctalia msg plugin remo/noctes:service all stick <key>
@@ -377,7 +411,7 @@ function onIpc(event, payload)
   if event == "desk" then
     spawnWidget()
   elseif event == "new" then
-    addNote({ content = payload })
+    spawnWidget(nil, { content = payload })
   elseif event == "open" then
     ensureKey(noctalia.string.trim(payload or ""))
   elseif event == "move" then
@@ -424,6 +458,9 @@ select("")
 publishPrefs()
 desk.probe(function(ready)
   publishValue("noctes.sheetsReady", ready)
+  if ready then
+    stickLooseNotes()
+  end
 end)
 desk.syncTilt(tiltWanted())
 loadNotes()

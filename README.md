@@ -71,7 +71,7 @@ frame, and the service adopts it a second later - key, angle, no frame.
 
 ```sh
 noctalia msg plugin remo/noctes:service all desk           # note + sheet
-noctalia msg plugin remo/noctes:service all new "buy milk" # note only
+noctalia msg plugin remo/noctes:service all new "buy milk" # note + sheet, with text
 noctalia msg plugin remo/noctes:service all open work      # select a note by key
 noctalia msg plugin remo/noctes:service all move           # toggle the widget editor
 noctalia msg plugin remo/noctes:service all stick work     # give a keyed note a sheet

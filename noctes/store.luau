@@ -368,4 +368,22 @@ function M.remove(id)
   return note.key or ""
 end
 
+-- Binds a note that had no sheet to the one just made for it. Keys are
+-- unique, so taking one frees it from any note that held it. updatedAt stays:
+-- getting paper is not an edit, and should not move the note up the list.
+function M.setKey(id, key)
+  local note = M.byId(id)
+  if note == nil or type(key) ~= "string" or key == "" then
+    return nil
+  end
+  for _, other in ipairs(M.notes) do
+    if other.id ~= id and other.key == key then
+      other.key = ""
+    end
+  end
+  note.key = key
+  saveDue = true
+  return note
+end
+
 return M

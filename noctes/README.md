@@ -62,7 +62,9 @@ The desktop-widget editor still works: its sheets arrive untilted, keyless and
 framed, and the service adopts them.
 
 A note made while python3 was missing has no sheet, and the panel says so where
-it would name the screen.
+it would name the screen. It gets its sheet at the first start where python3
+runs: the panel has no list, so a note without paper is one nobody could reach
+once another note is newer.
 
 Screenshots, the pitch and a walk through the first setup are in the
 [repository README](../README.md). The host quirks this code is shaped around
@@ -279,7 +281,9 @@ widget editor. No network calls.
 
 Only the paper needs it. The service asks once at startup whether the helper
 runs at all, and without it the notes still open, save and edit: **New** creates
-a note with no sheet, and the panel says so.
+a note with no sheet, and the panel says so. Once the helper runs, every note
+without a sheet gets one, one at a time; if the helper fails, that round stops
+after one notification and the next start tries again.
 
 A note that has a key but no sheet on this machine - from a synced
 `notes.json`, say - gets paper by key:

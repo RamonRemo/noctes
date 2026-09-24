@@ -169,9 +169,11 @@ T.test("ensure with an empty key opens nothing and creates nothing", function()
 end)
 
 T.test("stick over IPC with no key sticks nothing", function()
+  -- The loose note gets its own sheet at start; the IPC call adds nothing.
   local host, service = start({ notes = { { id = "l", key = "", title = "loose" } } })
+  local before = #host:runsOf("add")
   host:call(service, "onIpc", "stick", "")
-  T.eq(#host:runsOf("add"), 0, "add runs")
+  T.eq(#host:runsOf("add"), before, "add runs")
 end)
 
 -- ── Sheets ──────────────────────────────────────────────────────────────────
@@ -309,6 +311,78 @@ T.test("the panel's bin still takes note and sheet together", function()
   T.eq(titles(host), "B", "note gone")
   local removal = host:runsOf("remove")[1]
   T.ok(removal ~= nil and after(removal, "--key") == "k1", "sheet removed by key")
+end)
+
+-- ── Notes with no sheet at all ──────────────────────────────────────────────
+
+local function helperMissing(argv)
+  if has(argv, "--help") then
+    return { exitCode = 127, stdout = "", stderr = "python3: not found" }
+  end
+  return { exitCode = 0, stdout = "", stderr = "" }
+end
+
+T.test("new over IPC makes a note and its sheet, with the text", function()
+  local host, service = start({ responder = pendingAdds })
+  host:call(service, "onIpc", "new", "buy milk")
+  T.eq(#host:runsOf("add"), 1, "a sheet is asked for")
+  host:resolve("add", { exitCode = 0, stdout = "key=nota-1\noutput=DP-2\n", stderr = "" })
+
+  local note = host.state["noctes.notes"][1]
+  T.eq(note.content, "buy milk", "text")
+  T.eq(note.key, "nota-1", "bound to the sheet")
+  T.eq(host.state["noctes.editing"], note.id, "selected")
+end)
+
+T.test("new without the helper still makes the note", function()
+  local host, service = start({ responder = helperMissing })
+  host:call(service, "onIpc", "new", "buy milk")
+  local note = host.state["noctes.notes"][1]
+  T.eq(note.content, "buy milk", "text")
+  T.eq(note.key, "", "no sheet yet")
+end)
+
+local LOOSE = {
+  { id = "l1", key = "", title = "one", updatedAt = 2 },
+  { id = "l2", key = "", title = "two", updatedAt = 1 },
+}
+
+T.test("notes with no sheet get one each once the helper runs, one at a time", function()
+  local host = start({ notes = LOOSE, responder = pendingAdds })
+  T.eq(#host:runsOf("add"), 1, "one at a time")
+  T.eq(after(host:runsOf("add")[1], "--key"), nil, "the helper picks the key")
+
+  host:resolve("add", { exitCode = 0, stdout = "key=nota-1\noutput=DP-2\n", stderr = "" })
+  T.eq(#host:runsOf("add"), 2, "then the next")
+  host:resolve("add", { exitCode = 0, stdout = "key=nota-2\noutput=DP-2\n", stderr = "" })
+  T.eq(#host:runsOf("add"), 2, "and no more")
+
+  local keys = {}
+  for _, note in ipairs(host.state["noctes.notes"]) do
+    keys[note.title] = note.key
+  end
+  T.eq(keys.one, "nota-1", "first note's key")
+  T.eq(keys.two, "nota-2", "second note's key")
+  local stamps = {}
+  for _, note in ipairs(host.state["noctes.notes"]) do
+    stamps[note.title] = note.updatedAt
+  end
+  T.eq(stamps.one, 2, "getting paper is not an edit")
+  T.eq(stamps.two, 1, "getting paper is not an edit")
+end)
+
+T.test("a helper that fails stops the round after one notification", function()
+  local host = start({ notes = LOOSE, responder = pendingAdds })
+  host:resolve("add", { exitCode = 1, stdout = "", stderr = "boom" })
+  T.eq(#host:runsOf("add"), 1, "no second try this start")
+  T.eq(#host.errors, 1, "one notification")
+end)
+
+T.test("without the helper, notes with no sheet are left as they are", function()
+  local host = start({ notes = LOOSE, responder = helperMissing })
+  T.eq(#host:runsOf("add"), 0, "nothing asked for")
+  T.eq(host.state["noctes.notes"][1].key, "", "still loose")
+  T.eq(#host.errors, 0, "no notification on a start nobody acted in")
 end)
 
 -- ── The tilt switch ─────────────────────────────────────────────────────────
