@@ -1,8 +1,9 @@
 --!nonstrict
 -- Shared post-it paper colors and the small color math the surfaces need.
 --
--- Two modes, chosen per widget by `use_theme_colors`:
---   classic -> hardcoded paper colors, always the same regardless of theme
+-- A note either names its paper or leaves it dynamic. Dynamic paper comes in
+-- two modes, chosen plugin-wide by `theme_colors`:
+--   classic -> the hardcoded paper colors below, picked per note
 --   theme   -> Noctalia palette roles, so notes follow the wallpaper colors
 --
 -- The classic colors are light, so their text is always the dark ink below.
@@ -49,13 +50,9 @@ local THEME_ROLES = {
   { fill = "error", text = "on_error" },
 }
 
--- Overlays for the folded corner and the drop shadow. Translucent black and
--- white work on both a hex paper and a palette role, because they are painted
--- as children of the paper and blend with whatever is behind them.
--- The dog-eared corner: a slightly darkened triangle with a darker crease line
--- along its diagonal, which is what makes it read as folded rather than dirty.
-M.FOLD_SHADE = "#00000021"
-M.FOLD_EDGE = "#0000004D"
+-- Overlays for the tape and the drop shadow. Translucent black and white work
+-- on both a hex paper and a palette role, because they are painted as children
+-- of the paper and blend with whatever is behind them.
 
 -- The drop shadow: one color, laid down as a single box per edge and feathered
 -- with `softness`. The falloff is the feathering, not a stack of bands.
@@ -67,7 +64,7 @@ M.TAPE = "#FFFFFF59"
 M.TAPE_EDGE = "#00000021"
 
 -- Stable small hash of a string, so a post-it's generated look (paper tint,
--- fold corner, tape) stays the same across restarts instead of shuffling.
+-- tape) stays the same across restarts instead of shuffling.
 function M.hash(text)
   local h = 5381
   for i = 1, #tostring(text) do
@@ -87,15 +84,6 @@ function M.isKnown(name)
     return false
   end
   return CLASSIC[name] ~= nil or name == M.GLASS or name == M.BLACK
-end
-
--- A note carries "" when nobody picked a color: that resolves to a generated
--- one, stable per seed, so a wall of post-its is not a wall of yellow.
-function M.resolve(name, seed)
-  if M.isKnown(name) then
-    return name
-  end
-  return M.pick(M.NAMES, seed, "color")
 end
 
 local function clamp255(value)

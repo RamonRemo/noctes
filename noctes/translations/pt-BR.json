@@ -5,15 +5,9 @@
       "other": "{count} notas"
     }
   },
-  "board": {
-    "empty_note": "Nota vazia",
-    "untitled": "Sem titulo"
-  },
   "color": {
     "auto": "Dinamica (segue o tema)",
-    "black": "Preto",
     "blue": "Azul",
-    "glass": "Vidro",
     "gray": "Cinza",
     "green": "Verde",
     "orange": "Laranja",
@@ -21,12 +15,6 @@
     "purple": "Roxo",
     "red": "Vermelho",
     "yellow": "Amarelo"
-  },
-  "fold": {
-    "auto": "Automatica",
-    "bottom_left": "Inferior esquerda",
-    "bottom_right": "Inferior direita",
-    "none": "Nenhuma"
   },
   "note": {
     "empty_hint": "Clique para escrever",
@@ -36,11 +24,20 @@
     "add_failed": {
       "body": "A gravacao do settings.toml falhou. Feche o editor de widgets e tente de novo.",
       "title": "Nao consegui adicionar o post-it"
+    },
+    "no_tool": {
+      "body": "O tools/noctes-widget nao roda, entao nada consegue por papel na area de trabalho. As notas continuam abrindo, salvando e editando.",
+      "title": "Os post-its precisam de python3"
+    },
+    "unreadable": {
+      "moved": "Ele foi guardado intacto como {path}. As notas passam a ser salvas num notes.json novo.",
+      "stuck": "Nao consegui ler nem mover {path}, entao o noctes nao vai salvar por cima dele. Corrija ou mova o arquivo e use o reload.",
+      "title": "Nao consegui ler o notes.json"
     }
   },
   "panel": {
-    "color_dynamic_classic": "Dinamica: o papel e gerado pela chave da nota. Ligue “Papel segue o tema” para acompanhar o papel de parede.",
-    "color_dynamic_theme": "Dinamica: o papel e gerado pela chave da nota e segue o tema, entao muda de cor junto com o papel de parede.",
+    "color_dynamic_classic": "Dinamica: esta nota ganha um papel proprio. Ligue “Papel segue o tema” para acompanhar o papel de parede.",
+    "color_dynamic_theme": "Dinamica: esta nota ganha um papel proprio que segue o tema, entao muda de cor junto com o papel de parede.",
     "color_fixed": "Papel fixo: fica nessa cor faca o tema o que fizer.",
     "color_glass": "Vidro: um painel translucido no lugar do papel, tingido pela superficie da shell. Nitido, nao borrado - plugin nao tem blur disponivel.",
     "content_placeholder": "Escreva sua nota",
@@ -49,27 +46,18 @@
     "empty": "Nenhum post-it ainda",
     "move": "Mover post-its (editor de widgets)",
     "new": "Nova",
+    "no_helper": "sem papel (falta python3)",
     "not_on_screen": "fora da tela",
     "save": "Salvar",
     "saved": "Salvo",
     "settings": "Configuracoes do plugin",
-    "stick": "Colar na area de trabalho",
-    "title": "Noctes",
     "title_placeholder": "Titulo",
     "unsaved": "Alteracoes nao salvas"
   },
   "settings": {
-    "color": {
-      "description": "Automatica deriva a cor da chave; a cor da propria nota tem prioridade.",
-      "label": "Cor do papel"
-    },
     "default_color": {
-      "description": "Cor que as notas novas recebem. Automatica deixa a cargo da chave da folha.",
+      "description": "Cor que as notas novas recebem. Automatica da uma cor propria para cada nota.",
       "label": "Cor padrao"
-    },
-    "fold": {
-      "description": "Desligada por padrao: aqui uma diagonal so pode ser desenhada em escadinha, e aparece.",
-      "label": "Ponta dobrada"
     },
     "font_path": {
       "description": "Vem com a Patrick Hand. Aponte um caminho absoluto ou com ~ para outra .ttf/.otf, ou deixe vazio para a fonte da shell.",
@@ -80,15 +68,7 @@
       "label": "Tamanho da fonte"
     },
     "key": {
-      "description": "Qual nota este post-it mostra. Defina a mesma chave na nota, pelo painel.",
       "label": "Chave da nota"
-    },
-    "max_lines": {
-      "label": "Linhas exibidas"
-    },
-    "opacity_override": {
-      "description": "0 segue a opacidade do plugin. O texto continua opaco dos dois jeitos.",
-      "label": "Opacidade do papel (esta folha)"
     },
     "paper_height": {
       "label": "Altura do papel"
@@ -107,20 +87,8 @@
       "description": "Pasta do notes.json. Vazio usa o diretorio de dados do plugin.",
       "label": "Pasta de gravacao"
     },
-    "shadow": {
-      "description": "Descola o papel do papel de parede",
-      "label": "Sombra"
-    },
     "show_count": {
       "label": "Mostrar contagem de notas na barra"
-    },
-    "show_title": {
-      "description": "Desenha o titulo da nota acima do corpo",
-      "label": "Mostrar titulo"
-    },
-    "tape": {
-      "description": "Automatica decide pela chave se este post-it tem fita e onde.",
-      "label": "Fita"
     },
     "theme_colors": {
       "description": "Usa a paleta do Noctalia no lugar das cores classicas de papel. A paleta acompanha o papel de parede, entao todo post-it muda de cor junto.",
@@ -129,22 +97,6 @@
     "tilt": {
       "description": "As folhas ficam num angulo aleatorio pequeno. Desligar endireita todas; ligar de novo sorteia um angulo novo para cada uma.",
       "label": "Folhas tortas"
-    },
-    "use_theme_colors": {
-      "description": "Sobrescreve a opcao do plugin so para esta folha.",
-      "label": "Papel segue o tema"
     }
-  },
-  "tape": {
-    "auto": "Automatica",
-    "center": "Centro",
-    "left": "Esquerda",
-    "none": "Nenhuma",
-    "right": "Direita"
-  },
-  "theme_colors": {
-    "inherit": "Seguir a opcao do plugin",
-    "off": "Nunca",
-    "on": "Sempre"
   }
 }

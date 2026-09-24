@@ -1,6 +1,6 @@
 id          = "remo/noctes"
 name        = "Noctes"
-version     = "0.19.1"
+version     = "0.20.0"
 plugin_api  = 26
 author      = "remo"
 license     = "MIT"
@@ -44,62 +44,26 @@ position  = "center"
 id    = "note"
 entry = "note.luau"
 
-  # Which note this post-it shows. A key is a stable human-readable handle, so
-  # the widget keeps showing the same note no matter how the list reorders.
-  # An unknown key means the post-it is empty until it is first written to.
+  # Which note this post-it shows. A key is a stable handle, so the widget keeps
+  # showing the same note no matter how the list reorders. An unknown key means
+  # the post-it is empty until it is first written to.
+  #
+  # Plumbing, not a choice: the service generates it and noctes-widget writes
+  # it. It stays declared so the host knows it: an undeclared key in a widget's
+  # settings table is flagged by `noctalia config validate` as an unknown
+  # setting. The host has no `hidden` flag, so
+  # the field is kept out of the editor by a visible_when that never matches:
+  # nobody can type the sentinel into a field they cannot see.
+  #
+  # Nothing about the note's content lives here - the paper color is the note's
+  # own, picked in the panel, so a note looks the same on every sheet showing
+  # it. What is left in this list is the sheet: its size, its type, its props.
   [[desktop_widget.setting]]
-  key             = "key"
-  type            = "string"
-  label_key       = "settings.key.label"
-  description_key = "settings.key.description"
-  default         = ""
-
-  [[desktop_widget.setting]]
-  key             = "color"
-  type            = "select"
-  label_key       = "settings.color.label"
-  description_key = "settings.color.description"
-  default         = "auto"
-  options         = [
-    { value = "auto",   label_key = "color.auto"   },
-    { value = "yellow", label_key = "color.yellow" },
-    { value = "orange", label_key = "color.orange" },
-    { value = "pink",   label_key = "color.pink"   },
-    { value = "red",    label_key = "color.red"    },
-    { value = "purple", label_key = "color.purple" },
-    { value = "blue",   label_key = "color.blue"   },
-    { value = "green",  label_key = "color.green"  },
-    { value = "gray",   label_key = "color.gray"   },
-  ]
-
-  [[desktop_widget.setting]]
-  # Off by default: see the note in note.luau. The corner is still selectable
-  # for anyone who wants it.
-  key             = "fold"
-  type            = "select"
-  label_key       = "settings.fold.label"
-  description_key = "settings.fold.description"
-  default         = "none"
-  options         = [
-    { value = "auto",         label_key = "fold.auto"         },
-    { value = "none",         label_key = "fold.none"         },
-    { value = "bottom_right", label_key = "fold.bottom_right" },
-    { value = "bottom_left",  label_key = "fold.bottom_left"  },
-  ]
-
-  [[desktop_widget.setting]]
-  key             = "tape"
-  type            = "select"
-  label_key       = "settings.tape.label"
-  description_key = "settings.tape.description"
-  default         = "auto"
-  options         = [
-    { value = "auto",   label_key = "tape.auto"   },
-    { value = "none",   label_key = "tape.none"   },
-    { value = "left",   label_key = "tape.left"   },
-    { value = "center", label_key = "tape.center" },
-    { value = "right",  label_key = "tape.right"  },
-  ]
+  key          = "key"
+  type         = "string"
+  label_key    = "settings.key.label"
+  default      = ""
+  visible_when = { key = "key", values = ["__never__"] }
 
   # The host centers a plugin widget's tree at its natural size inside the
   # widget box, so the paper carries its own size instead of stretching.
@@ -131,54 +95,6 @@ entry = "note.luau"
   default         = 16
   min             = 8
   max             = 40
-
-  [[desktop_widget.setting]]
-  key       = "max_lines"
-  type      = "int"
-  label_key = "settings.max_lines.label"
-  default   = 14
-  min       = 1
-  max       = 60
-
-  [[desktop_widget.setting]]
-  key             = "show_title"
-  type            = "bool"
-  label_key       = "settings.show_title.label"
-  description_key = "settings.show_title.description"
-  default         = true
-
-  # 0 means "follow the plugin-wide opacity"; anything above overrides it for
-  # this sheet alone. Named apart from the plugin-level key on purpose: a
-  # matching name makes the host shadow one with the other and warn about it.
-  [[desktop_widget.setting]]
-  key             = "opacity_override"
-  type            = "double"
-  label_key       = "settings.opacity_override.label"
-  description_key = "settings.opacity_override.description"
-  default         = 0.0
-  min             = 0.0
-  max             = 1.0
-  step            = 0.02
-
-  [[desktop_widget.setting]]
-  key             = "shadow"
-  type            = "bool"
-  label_key       = "settings.shadow.label"
-  description_key = "settings.shadow.description"
-  default         = true
-
-  # Per sheet, on top of the plugin-wide switch below.
-  [[desktop_widget.setting]]
-  key             = "use_theme_colors"
-  type            = "select"
-  label_key       = "settings.use_theme_colors.label"
-  description_key = "settings.use_theme_colors.description"
-  default         = "inherit"
-  options         = [
-    { value = "inherit", label_key = "theme_colors.inherit" },
-    { value = "on",      label_key = "theme_colors.on"      },
-    { value = "off",     label_key = "theme_colors.off"     },
-  ]
 
   # Handwriting by default, so a post-it does not read as UI text. The bundled
   # Patrick Hand (SIL OFL, see PatrickHand-OFL.txt) is plugin-relative; any
@@ -229,7 +145,7 @@ label_key       = "settings.tilt.label"
 description_key = "settings.tilt.description"
 default         = true
 
-# How solid the paper is, for every sheet that does not override it.
+# How solid the paper is, on every sheet. The text stays opaque.
 [[setting]]
 key             = "paper_opacity"
 type            = "double"

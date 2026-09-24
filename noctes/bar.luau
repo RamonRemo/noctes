@@ -14,8 +14,14 @@ local function render()
   barWidget.setTooltip(noctalia.trp("bar.tooltip", count))
 end
 
+-- Every edit republishes the list; only a note added or deleted changes what
+-- the bar shows.
 noctalia.state.watch("noctes.notes", function(value)
-  count = type(value) == "table" and #value or 0
+  local next = type(value) == "table" and #value or 0
+  if next == count then
+    return
+  end
+  count = next
   render()
 end)
 
@@ -23,7 +29,6 @@ function onClick()
   noctalia.togglePanel("remo/noctes:panel")
 end
 
-count = 0
 local initial = noctalia.state.get("noctes.notes")
 if type(initial) == "table" then
   count = #initial
