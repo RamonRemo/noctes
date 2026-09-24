@@ -38,25 +38,50 @@ class Noctalia:
 
     Swapped in whole rather than patching `subprocess.run`, which is one shared
     object: patching it there would reach the test runner and every other test.
+
+    `noctalia config validate <candidate>` is answered the way the real one
+    answers the only error class that matters here: a candidate that does not
+    parse is rejected. `validate_returncode` forces an answer instead. The same
+    command pointed at settings.toml itself is the read-only check `scatter`
+    uses to find stale settings, and prints `validate_stdout`.
     """
 
     CompletedProcess = subprocess.CompletedProcess
 
     def __init__(self):
         self.calls = []
-        self.validate_returncode = 0
+        self.validate_returncode = None
         self.validate_stderr = ""
+        self.validate_stdout = ""
+        # (settings.toml, candidate) as they stood when a candidate was checked.
+        self.seen_at_validate = []
 
     def run(self, argv, **kwargs):
+        import tomllib
+
         self.calls.append(list(argv))
-        code = self.validate_returncode if argv[:2] == ["noctalia", "config"] else 0
-        return subprocess.CompletedProcess(
-            argv, code, stdout="", stderr=self.validate_stderr if code else ""
-        )
+        if argv[:3] != ["noctalia", "config", "validate"] or len(argv) < 4:
+            return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+        path = Path(argv[3])
+        if not path.name.endswith(".noctes-new"):
+            return subprocess.CompletedProcess(argv, 0, stdout=self.validate_stdout, stderr="")
+
+        live = path.with_name(path.name.removesuffix(".noctes-new"))
+        self.seen_at_validate.append((live.read_text(), path.read_text()))
+        code, stderr = self.validate_returncode, self.validate_stderr
+        if code is None:
+            try:
+                tomllib.loads(path.read_text())
+                code = 0
+            except tomllib.TOMLDecodeError as error:
+                code, stderr = 1, str(error)
+        return subprocess.CompletedProcess(argv, code, stdout="", stderr=stderr if code else "")
 
     @property
     def validated(self):
-        return ["noctalia", "config", "validate"] in self.calls
+        """A candidate was checked, which is to say a write was attempted."""
+        return bool(self.seen_at_validate)
 
     @property
     def reloaded(self):
@@ -106,14 +131,14 @@ class ToolCase(unittest.TestCase):
             sys.argv = old
             self.output = buffer.getvalue()
 
-    def backups(self):
-        return sorted(p.name for p in self.tmp.iterdir() if ".bak" in p.name)
+    def files(self):
+        return sorted(p.name for p in self.tmp.iterdir())
 
     def assertValidToml(self, text=None):
         """Every write has to survive Noctalia's parser.
 
-        An unrecognised key does not fail gracefully there - it breaks the parse
-        and takes the shell down - so this is the invariant that matters most.
+        A settings file that does not parse is one the shell refuses to load: it
+        keeps running on the config it had, so the change never takes effect.
         """
         import tomllib
 

@@ -1,9 +1,12 @@
 """Settings files to run the tool against.
 
 Shaped like Noctalia's own `settings.toml`: four-space indent under
-`[desktop_widgets]`, eight under a widget's `.settings`, `widget_order` as a
-multi-line array. The tool edits this file as lines rather than round-tripping
-TOML, so the indentation and the blank lines are part of what is under test.
+`[desktop_widgets]`, eight under a widget's `.settings`. `widget_order` comes in
+both shapes the shell writes - toml++ keeps an array on one line up to 120
+columns and wraps it past that, so one or two widgets give a one-line array and
+three give a wrapped one. The tool edits this file as lines rather than
+round-tripping TOML, so the indentation and the blank lines are part of what is
+under test.
 """
 
 HEAD = """\
@@ -15,16 +18,37 @@ enabled = false
 """
 
 
-def settings(widgets=(), order=None, plugin_tilt=None, schema=2):
+LOCKSCREEN_IDS = [
+    "lockscreen-login-box@DP-1",
+    "lockscreen-login-box@DP-2",
+    "lockscreen-widget-0000000000000001",
+]
+
+
+def array(key, ids, inline):
+    """`key = [...]` the way toml++ writes it, inline or wrapped."""
+    quoted = [f'"{i}"' for i in ids]
+    if not ids:
+        return f"{key} = []\n"
+    if inline:
+        return f"{key} = [ {', '.join(quoted)} ]\n"
+    entries = ",\n".join(f"    {q}" for q in quoted)
+    return f"{key} = [\n{entries}\n]\n"
+
+
+def settings(widgets=(), order=None, plugin_tilt=None, schema=2, inline=False,
+             lockscreen=None):
     """A settings file holding `widgets`, each a block of TOML text.
 
-    `order` defaults to every widget id in the order given. `plugin_tilt`
-    writes noctes' own `tilt` switch into `[plugin_settings]` when it is a bool.
+    `order` defaults to every widget id in the order given; `inline` writes it
+    on one line. `plugin_tilt` writes noctes' own `tilt` switch into
+    `[plugin_settings]` when it is a bool. `lockscreen` adds a
+    `[lockscreen_widgets]` table with a widget_order of its own, "inline" or
+    "wrapped": the tool must never mistake that array for the desktop one.
     """
     ids = [wid for wid, _ in widgets]
     listed = ids if order is None else order
 
-    entries = ",\n".join(f'    "{wid}"' for wid in listed)
     body = "".join(block for _, block in widgets)
 
     plugin = ""
@@ -41,9 +65,7 @@ def settings(widgets=(), order=None, plugin_tilt=None, schema=2):
         "\n"
         "[desktop_widgets]\n"
         f"schema_version = {schema}\n"
-        "widget_order = [\n"
-        f"{entries}\n"
-        "]\n"
+        f"{array('widget_order', listed, inline)}"
         "\n"
         "    [desktop_widgets.grid]\n"
         "    cell_size = 16\n"
@@ -52,6 +74,18 @@ def settings(widgets=(), order=None, plugin_tilt=None, schema=2):
         f"{plugin}"
         "\n[dock]\n"
         "enabled = false\n"
+        f"{lockscreen_table(lockscreen)}"
+    )
+
+
+def lockscreen_table(shape):
+    if shape is None:
+        return ""
+    return (
+        "\n[lockscreen_widgets]\n"
+        "enabled = true\n"
+        "schema_version = 2\n"
+        f"{array('widget_order', LOCKSCREEN_IDS, shape == 'inline')}"
     )
 
 

@@ -180,25 +180,31 @@ class TestWidgetId(ToolCase):
                          r"^desktop-widget-[0-9a-f]{16}$")
 
 
-class TestBusiestOutput(ToolCase):
-    def test_the_screen_holding_the_most_sheets_wins(self):
-        text = fixtures.settings([
-            fixtures.sheet(fixtures.wid(1), key="a", output="DP-2"),
-            fixtures.sheet(fixtures.wid(2), key="b", output="DP-2"),
-            fixtures.sheet(fixtures.wid(3), key="c", output="HDMI-A-1"),
-        ])
-        self.assertEqual(self.module.busiest_output(text.splitlines(keepends=True)), "DP-2")
+class TestWidgetOrder(ToolCase):
+    def order_of(self, lines):
+        import tomllib
+        return tomllib.loads("".join(lines))["desktop_widgets"]["widget_order"]
 
-    def test_none_when_there_are_no_sheets_yet(self):
-        self.assertIsNone(self.module.busiest_output(fixtures.settings().splitlines(keepends=True)))
+    def test_a_one_line_order_is_read_and_rewritten_wrapped(self):
+        lines = fixtures.settings([fixtures.foreign(fixtures.wid(1))], inline=True) \
+            .splitlines(keepends=True)
+        out = self.module.rewrite_order(lines, lambda ids: ids + ["x"])
+        self.assertEqual(self.order_of(out), [fixtures.wid(1), "x"])
+        self.assertIn("widget_order = [\n", out)
 
-    def test_other_plugins_widgets_do_not_vote(self):
-        text = fixtures.settings([
-            fixtures.sheet(fixtures.wid(1), key="a", output="HDMI-A-1"),
-            fixtures.foreign(fixtures.wid(2), output="DP-2"),
-            fixtures.foreign(fixtures.wid(3), output="DP-2"),
-        ])
-        self.assertEqual(self.module.busiest_output(text.splitlines(keepends=True)), "HDMI-A-1")
+    def test_an_emptied_order_is_an_empty_array(self):
+        lines = fixtures.settings([fixtures.foreign(fixtures.wid(1))]).splitlines(keepends=True)
+        out = self.module.rewrite_order(lines, lambda ids: [])
+        self.assertEqual(self.order_of(out), [])
+        self.assertIn("widget_order = []\n", out)
+
+    def test_only_the_desktop_order_is_touched(self):
+        lines = fixtures.settings(lockscreen="inline").splitlines(keepends=True)
+        out = self.module.rewrite_order(lines, lambda ids: ids + ["x"])
+        import tomllib
+        parsed = tomllib.loads("".join(out))
+        self.assertEqual(parsed["lockscreen_widgets"]["widget_order"], fixtures.LOCKSCREEN_IDS)
+        self.assertEqual(parsed["desktop_widgets"]["widget_order"], ["x"])
 
 
 class TestFreeSpot(ToolCase):
