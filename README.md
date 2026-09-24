@@ -111,6 +111,11 @@ noctalia msg plugin remo/noctes:service all reload         # re-read notes.json
   the shell, and the manifest against the translations and docs that have to
   agree with it. Python's standard library, plus Lua 5.4 for the Luau.
 
+## Suggestions and bugs
+
+Open an [issue](https://github.com/RamonRemo/noctes/issues). Ideas are as
+welcome as bug reports.
+
 ## License
 
 MIT. The bundled Patrick Hand font is SIL OFL 1.1 - it is the handwriting the
