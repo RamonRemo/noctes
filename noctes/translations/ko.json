@@ -1,0 +1,102 @@
+{
+  "bar": {
+    "tooltip": {
+      "one": "메모 1개",
+      "other": "메모 {count}개"
+    }
+  },
+  "color": {
+    "auto": "동적 (테마를 따름)",
+    "blue": "파랑",
+    "gray": "회색",
+    "green": "초록",
+    "orange": "주황",
+    "pink": "분홍",
+    "purple": "보라",
+    "red": "빨강",
+    "yellow": "노랑"
+  },
+  "note": {
+    "empty_hint": "클릭해서 쓰기",
+    "loading": "..."
+  },
+  "notify": {
+    "add_failed": {
+      "body": "settings.toml을 수정하지 못했습니다. 데스크톱 위젯 편집기를 닫고 다시 시도하세요.",
+      "title": "포스트잇을 추가하지 못했습니다"
+    },
+    "no_tool": {
+      "body": "tools/noctes-widget을 실행할 수 없어 바탕화면에 종이를 붙일 수 없습니다. 메모는 계속 열고 저장하고 편집할 수 있습니다.",
+      "title": "포스트잇에는 python3가 필요합니다"
+    },
+    "unreadable": {
+      "moved": "원래 파일은 {path}(으)로 그대로 보관했습니다. 이제부터 메모는 새 notes.json에 저장됩니다.",
+      "stuck": "{path}을(를) 읽지도 옮기지도 못해서 noctes가 덮어쓰지 않습니다. 파일을 고치거나 옮긴 뒤 다시 불러오세요.",
+      "title": "notes.json을 읽지 못했습니다"
+    }
+  },
+  "panel": {
+    "color_dynamic_classic": "동적: 이 메모는 자기만의 종이를 받습니다. 배경화면을 따르게 하려면 “종이가 테마를 따름”을 켜세요.",
+    "color_dynamic_theme": "동적: 이 메모는 테마를 따르는 자기만의 종이를 받아 배경화면과 함께 색이 바뀝니다.",
+    "color_fixed": "고정 종이: 테마가 어떻게 바뀌어도 이 색을 유지합니다.",
+    "color_glass": "유리: 종이 대신 흰색 반투명 판을 쓰고 글자는 테마를 따릅니다. 흐림 없이 선명합니다 - 플러그인은 흐림 효과를 쓸 수 없습니다.",
+    "content_placeholder": "메모를 작성하세요",
+    "delete": "삭제",
+    "delete_confirm": "한 번 더 클릭하면 삭제",
+    "empty": "아직 포스트잇이 없습니다",
+    "move": "포스트잇 이동 (위젯 편집기)",
+    "new": "새로 만들기",
+    "no_helper": "종이 없음 (python3 없음)",
+    "not_on_screen": "화면에 없음",
+    "save": "저장",
+    "saved": "저장됨",
+    "settings": "플러그인 설정",
+    "title_placeholder": "제목",
+    "unsaved": "저장하지 않은 변경 사항"
+  },
+  "settings": {
+    "default_color": {
+      "description": "새 메모에 쓰이는 색상. 자동은 메모마다 고유한 색을 줍니다.",
+      "label": "기본 색상"
+    },
+    "font_path": {
+      "description": "기본값은 함께 제공되는 Patrick Hand입니다. 다른 .ttf/.otf를 쓰려면 절대 경로나 ~ 경로를 입력하고, 셸 글꼴을 쓰려면 비워 두세요.",
+      "label": "글꼴 파일"
+    },
+    "font_size": {
+      "description": "본문 크기. 손글씨 글꼴은 UI 글꼴보다 몇 포인트 더 커야 읽기 좋습니다.",
+      "label": "글꼴 크기"
+    },
+    "key": {
+      "label": "메모 키"
+    },
+    "paper_height": {
+      "label": "종이 높이"
+    },
+    "paper_opacity_all": {
+      "description": "모든 포스트잇의 불투명도. 글자는 항상 완전히 불투명합니다.",
+      "label": "종이 불투명도"
+    },
+    "paper_size": {
+      "description": "종이 자체의 크기(px). 위젯 상자는 조금 더 크게 잡으세요."
+    },
+    "paper_width": {
+      "label": "종이 너비"
+    },
+    "save_path": {
+      "description": "notes.json을 둘 폴더. 비워 두면 플러그인 자체 데이터 디렉터리를 씁니다.",
+      "label": "저장 폴더"
+    },
+    "show_count": {
+      "label": "바에 메모 수 표시"
+    },
+    "theme_colors": {
+      "description": "클래식 종이 색 대신 Noctalia 팔레트를 씁니다. 팔레트가 배경화면을 따르므로 모든 포스트잇도 함께 색이 바뀝니다.",
+      "label": "종이가 테마를 따름"
+    },
+    "tilt": {
+      "description": "종이가 작은 무작위 각도로 놓입니다. 끄면 모두 반듯해지고, 다시 켜면 각각 새 각도를 받습니다.",
+      "label": "비뚤어진 종이"
+    }
+  }
+}

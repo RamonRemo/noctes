@@ -1,0 +1,102 @@
+{
+  "bar": {
+    "tooltip": {
+      "one": "1 notitie",
+      "other": "{count} notities"
+    }
+  },
+  "color": {
+    "auto": "Dynamisch (volgt het thema)",
+    "blue": "Blauw",
+    "gray": "Grijs",
+    "green": "Groen",
+    "orange": "Oranje",
+    "pink": "Roze",
+    "purple": "Paars",
+    "red": "Rood",
+    "yellow": "Geel"
+  },
+  "note": {
+    "empty_hint": "Klik om te schrijven",
+    "loading": "..."
+  },
+  "notify": {
+    "add_failed": {
+      "body": "Het bewerken van settings.toml is mislukt. Sluit de widgeteditor van het bureaublad en probeer het opnieuw.",
+      "title": "Kon het briefje niet toevoegen"
+    },
+    "no_tool": {
+      "body": "tools/noctes-widget start niet, dus niets kan papier op het bureaublad leggen. Notities openen, bewaren en bewerken gewoon verder.",
+      "title": "Briefjes hebben python3 nodig"
+    },
+    "unreadable": {
+      "moved": "Het blijft onaangeroerd bewaard als {path}. Notities worden voortaan in een nieuwe notes.json bewaard.",
+      "stuck": "{path} kon niet worden gelezen of opzij gezet, dus noctes schrijft er niet overheen. Herstel of verplaats het bestand en laad daarna opnieuw.",
+      "title": "notes.json kon niet worden gelezen"
+    }
+  },
+  "panel": {
+    "color_dynamic_classic": "Dynamisch: deze notitie krijgt een eigen papier. Zet “Papier volgt het thema” aan om de achtergrond te volgen.",
+    "color_dynamic_theme": "Dynamisch: deze notitie krijgt een eigen papier dat het thema volgt, dus het verandert van kleur met de achtergrond.",
+    "color_fixed": "Vast papier: blijft deze kleur, wat het thema ook doet.",
+    "color_glass": "Glas: een witte doorschijnende ruit in plaats van papier, met tekst die het thema volgt. Scherp, niet vervaagd - een plugin heeft geen vervaging tot zijn beschikking.",
+    "content_placeholder": "Schrijf je notitie",
+    "delete": "Verwijderen",
+    "delete_confirm": "Klik nogmaals om te verwijderen",
+    "empty": "Nog geen briefjes",
+    "move": "Briefjes verplaatsen (widgeteditor)",
+    "new": "Nieuw",
+    "no_helper": "geen papier (python3 ontbreekt)",
+    "not_on_screen": "niet op het scherm",
+    "save": "Opslaan",
+    "saved": "Opgeslagen",
+    "settings": "Plugin-instellingen",
+    "title_placeholder": "Titel",
+    "unsaved": "Niet-opgeslagen wijzigingen"
+  },
+  "settings": {
+    "default_color": {
+      "description": "Kleur die nieuwe notities krijgen. Automatisch geeft elke notitie een eigen kleur.",
+      "label": "Standaardkleur"
+    },
+    "font_path": {
+      "description": "Standaard het meegeleverde Patrick Hand. Geef een absoluut of ~-pad naar een andere .ttf/.otf, of laat leeg voor het lettertype van de shell.",
+      "label": "Lettertypebestand"
+    },
+    "font_size": {
+      "description": "Grootte van de tekst. Een handschriftlettertype heeft een paar punten meer nodig dan een interfacelettertype.",
+      "label": "Lettergrootte"
+    },
+    "key": {
+      "label": "Notitiesleutel"
+    },
+    "paper_height": {
+      "label": "Papierhoogte"
+    },
+    "paper_opacity_all": {
+      "description": "Hoe dekkend elk briefje is. De tekst blijft volledig dekkend.",
+      "label": "Papierdekking"
+    },
+    "paper_size": {
+      "description": "Grootte van het papier zelf, in px. Maak het widgetvak iets groter."
+    },
+    "paper_width": {
+      "label": "Papierbreedte"
+    },
+    "save_path": {
+      "description": "Map voor notes.json. Leeg gebruikt de eigen datamap van de plugin.",
+      "label": "Opslagmap"
+    },
+    "show_count": {
+      "label": "Aantal notities in de balk tonen"
+    },
+    "theme_colors": {
+      "description": "Gebruikt het Noctalia-palet in plaats van de klassieke papierkleuren. Het palet volgt de achtergrond, dus elk briefje verandert mee van kleur.",
+      "label": "Papier volgt het thema"
+    },
+    "tilt": {
+      "description": "De briefjes liggen onder een kleine willekeurige hoek. Uitzetten zet ze allemaal recht; weer aanzetten geeft elk een nieuwe hoek.",
+      "label": "Scheve briefjes"
+    }
+  }
+}

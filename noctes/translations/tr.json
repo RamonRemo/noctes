@@ -1,0 +1,102 @@
+{
+  "bar": {
+    "tooltip": {
+      "one": "1 not",
+      "other": "{count} not"
+    }
+  },
+  "color": {
+    "auto": "Dinamik (temayı izler)",
+    "blue": "Mavi",
+    "gray": "Gri",
+    "green": "Yeşil",
+    "orange": "Turuncu",
+    "pink": "Pembe",
+    "purple": "Mor",
+    "red": "Kırmızı",
+    "yellow": "Sarı"
+  },
+  "note": {
+    "empty_hint": "Yazmak için tıklayın",
+    "loading": "..."
+  },
+  "notify": {
+    "add_failed": {
+      "body": "settings.toml düzenlenemedi. Masaüstü widget düzenleyicisini kapatıp yeniden deneyin.",
+      "title": "Yapışkan not eklenemedi"
+    },
+    "no_tool": {
+      "body": "tools/noctes-widget çalışmıyor, bu yüzden masaüstüne kâğıt koyabilecek bir şey yok. Notlar yine de açılır, kaydedilir ve düzenlenir.",
+      "title": "Yapışkan notlar python3 gerektirir"
+    },
+    "unreadable": {
+      "moved": "Dosya olduğu gibi {path} olarak saklandı. Notlar bundan sonra yeni bir notes.json dosyasına kaydedilir.",
+      "stuck": "{path} ne okunabildi ne de kenara taşınabildi, bu yüzden noctes üzerine yazmayacak. Dosyayı düzeltin ya da taşıyın, sonra yeniden yükleyin.",
+      "title": "notes.json okunamadı"
+    }
+  },
+  "panel": {
+    "color_dynamic_classic": "Dinamik: bu not kendine ait bir kâğıt alır. Duvar kâğıdını izlemesi için “Kâğıt temayı izler” seçeneğini açın.",
+    "color_dynamic_theme": "Dinamik: bu not temayı izleyen kendine ait bir kâğıt alır, böylece duvar kâğıdıyla birlikte renk değiştirir.",
+    "color_fixed": "Sabit kâğıt: tema ne yaparsa yapsın bu renkte kalır.",
+    "color_glass": "Cam: kâğıt yerine beyaz yarı saydam bir levha, yazı temayı izler. Net, bulanık değil - eklentilerin bulanıklaştırma imkânı yok.",
+    "content_placeholder": "Notunuzu yazın",
+    "delete": "Sil",
+    "delete_confirm": "Silmek için tekrar tıklayın",
+    "empty": "Henüz yapışkan not yok",
+    "move": "Notları taşı (widget düzenleyici)",
+    "new": "Yeni",
+    "no_helper": "kâğıt yok (python3 eksik)",
+    "not_on_screen": "ekranda değil",
+    "save": "Kaydet",
+    "saved": "Kaydedildi",
+    "settings": "Eklenti ayarları",
+    "title_placeholder": "Başlık",
+    "unsaved": "Kaydedilmemiş değişiklikler"
+  },
+  "settings": {
+    "default_color": {
+      "description": "Yeni notların alacağı renk. Otomatik, her nota kendi rengini verir.",
+      "label": "Varsayılan renk"
+    },
+    "font_path": {
+      "description": "Varsayılan olarak birlikte gelen Patrick Hand. Başka bir .ttf/.otf için mutlak ya da ~ ile başlayan bir yol girin veya kabuğun yazı tipi için boş bırakın.",
+      "label": "Yazı tipi dosyası"
+    },
+    "font_size": {
+      "description": "Metin boyutu. El yazısı bir yazı tipi, arayüz yazı tipinden birkaç punto fazlasına ihtiyaç duyar.",
+      "label": "Yazı tipi boyutu"
+    },
+    "key": {
+      "label": "Not anahtarı"
+    },
+    "paper_height": {
+      "label": "Kâğıt yüksekliği"
+    },
+    "paper_opacity_all": {
+      "description": "Her yapışkan notun ne kadar opak olduğu. Yazı tamamen opak kalır.",
+      "label": "Kâğıt opaklığı"
+    },
+    "paper_size": {
+      "description": "Kâğıdın kendi boyutu, px cinsinden. Widget kutusunu biraz daha büyük yapın."
+    },
+    "paper_width": {
+      "label": "Kâğıt genişliği"
+    },
+    "save_path": {
+      "description": "notes.json klasörü. Boş bırakılırsa eklentinin kendi veri dizini kullanılır.",
+      "label": "Kayıt klasörü"
+    },
+    "show_count": {
+      "label": "Çubukta not sayısını göster"
+    },
+    "theme_colors": {
+      "description": "Klasik kâğıt renkleri yerine Noctalia paletini kullanır. Palet duvar kâğıdını izler, böylece her not onunla birlikte renk değiştirir.",
+      "label": "Kâğıt temayı izler"
+    },
+    "tilt": {
+      "description": "Kâğıtlar küçük rastgele bir açıyla durur. Kapatmak hepsini düzeltir; yeniden açmak her birine yeni bir açı verir.",
+      "label": "Eğri kâğıtlar"
+    }
+  }
+}

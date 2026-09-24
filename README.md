@@ -44,6 +44,8 @@ there is no note list, because the notes are already on screen.
   your notes are still readable on disk.
 - A bar widget with the note count, which opens the panel.
 - IPC, so a quick note can be one keybind away.
+- In English, Portuguese, Spanish, French, German, Italian, Dutch, Polish,
+  Russian, Ukrainian, Turkish, Japanese, Korean and Chinese.
 
 ## Install
 

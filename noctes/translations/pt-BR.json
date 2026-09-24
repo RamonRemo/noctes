@@ -6,7 +6,7 @@
     }
   },
   "color": {
-    "auto": "Dinamica (segue o tema)",
+    "auto": "Dinâmica (segue o tema)",
     "blue": "Azul",
     "gray": "Cinza",
     "green": "Verde",
@@ -22,24 +22,24 @@
   },
   "notify": {
     "add_failed": {
-      "body": "A gravacao do settings.toml falhou. Feche o editor de widgets e tente de novo.",
-      "title": "Nao consegui adicionar o post-it"
+      "body": "A gravação do settings.toml falhou. Feche o editor de widgets e tente de novo.",
+      "title": "Não consegui adicionar o post-it"
     },
     "no_tool": {
-      "body": "O tools/noctes-widget nao roda, entao nada consegue por papel na area de trabalho. As notas continuam abrindo, salvando e editando.",
+      "body": "O tools/noctes-widget não roda, então nada consegue pôr papel na área de trabalho. As notas continuam abrindo, salvando e editando.",
       "title": "Os post-its precisam de python3"
     },
     "unreadable": {
       "moved": "Ele foi guardado intacto como {path}. As notas passam a ser salvas num notes.json novo.",
-      "stuck": "Nao consegui ler nem mover {path}, entao o noctes nao vai salvar por cima dele. Corrija ou mova o arquivo e use o reload.",
-      "title": "Nao consegui ler o notes.json"
+      "stuck": "Não consegui ler nem mover {path}, então o noctes não vai salvar por cima dele. Corrija ou mova o arquivo e recarregue.",
+      "title": "Não consegui ler o notes.json"
     }
   },
   "panel": {
-    "color_dynamic_classic": "Dinamica: esta nota ganha um papel proprio. Ligue “Papel segue o tema” para acompanhar o papel de parede.",
-    "color_dynamic_theme": "Dinamica: esta nota ganha um papel proprio que segue o tema, entao muda de cor junto com o papel de parede.",
-    "color_fixed": "Papel fixo: fica nessa cor faca o tema o que fizer.",
-    "color_glass": "Vidro: um painel translucido no lugar do papel, tingido pela superficie da shell. Nitido, nao borrado - plugin nao tem blur disponivel.",
+    "color_dynamic_classic": "Dinâmica: esta nota ganha um papel próprio. Ligue “Papel segue o tema” para acompanhar o papel de parede.",
+    "color_dynamic_theme": "Dinâmica: esta nota ganha um papel próprio que segue o tema, então muda de cor junto com o papel de parede.",
+    "color_fixed": "Papel fixo: fica nessa cor, faça o tema o que fizer.",
+    "color_glass": "Vidro: um painel branco translúcido no lugar do papel, com o texto seguindo o tema. Nítido, sem desfoque - plugin não tem desfoque disponível.",
     "content_placeholder": "Escreva sua nota",
     "delete": "Excluir",
     "delete_confirm": "Clique de novo para excluir",
@@ -50,21 +50,21 @@
     "not_on_screen": "fora da tela",
     "save": "Salvar",
     "saved": "Salvo",
-    "settings": "Configuracoes do plugin",
-    "title_placeholder": "Titulo",
-    "unsaved": "Alteracoes nao salvas"
+    "settings": "Configurações do plugin",
+    "title_placeholder": "Título",
+    "unsaved": "Alterações não salvas"
   },
   "settings": {
     "default_color": {
-      "description": "Cor que as notas novas recebem. Automatica da uma cor propria para cada nota.",
-      "label": "Cor padrao"
+      "description": "Cor que as notas novas recebem. Automática dá uma cor própria para cada nota.",
+      "label": "Cor padrão"
     },
     "font_path": {
       "description": "Vem com a Patrick Hand. Aponte um caminho absoluto ou com ~ para outra .ttf/.otf, ou deixe vazio para a fonte da shell.",
       "label": "Arquivo de fonte"
     },
     "font_size": {
-      "description": "Tamanho do corpo. Fonte de escrita a mao pede alguns pontos a mais que uma fonte de interface.",
+      "description": "Tamanho do corpo. Fonte de escrita à mão pede alguns pontos a mais que uma fonte de interface.",
       "label": "Tamanho da fonte"
     },
     "key": {
@@ -74,7 +74,7 @@
       "label": "Altura do papel"
     },
     "paper_opacity_all": {
-      "description": "Quao solido fica todo post-it. O texto continua opaco.",
+      "description": "Quão sólido fica cada post-it. O texto continua totalmente opaco.",
       "label": "Opacidade do papel"
     },
     "paper_size": {
@@ -84,18 +84,18 @@
       "label": "Largura do papel"
     },
     "save_path": {
-      "description": "Pasta do notes.json. Vazio usa o diretorio de dados do plugin.",
-      "label": "Pasta de gravacao"
+      "description": "Pasta do notes.json. Vazio usa o diretório de dados do próprio plugin.",
+      "label": "Pasta de gravação"
     },
     "show_count": {
       "label": "Mostrar contagem de notas na barra"
     },
     "theme_colors": {
-      "description": "Usa a paleta do Noctalia no lugar das cores classicas de papel. A paleta acompanha o papel de parede, entao todo post-it muda de cor junto.",
+      "description": "Usa a paleta do Noctalia no lugar das cores clássicas de papel. A paleta acompanha o papel de parede, então todo post-it muda de cor junto.",
       "label": "Papel segue o tema"
     },
     "tilt": {
-      "description": "As folhas ficam num angulo aleatorio pequeno. Desligar endireita todas; ligar de novo sorteia um angulo novo para cada uma.",
+      "description": "As folhas ficam num ângulo aleatório pequeno. Desligar endireita todas; ligar de novo sorteia um ângulo novo para cada uma.",
       "label": "Folhas tortas"
     }
   }

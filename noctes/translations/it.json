@@ -1,0 +1,102 @@
+{
+  "bar": {
+    "tooltip": {
+      "one": "1 nota",
+      "other": "{count} note"
+    }
+  },
+  "color": {
+    "auto": "Dinamico (segue il tema)",
+    "blue": "Blu",
+    "gray": "Grigio",
+    "green": "Verde",
+    "orange": "Arancione",
+    "pink": "Rosa",
+    "purple": "Viola",
+    "red": "Rosso",
+    "yellow": "Giallo"
+  },
+  "note": {
+    "empty_hint": "Clicca per scrivere",
+    "loading": "..."
+  },
+  "notify": {
+    "add_failed": {
+      "body": "La modifica di settings.toml non è riuscita. Chiudi l'editor dei widget del desktop e riprova.",
+      "title": "Impossibile aggiungere il post-it"
+    },
+    "no_tool": {
+      "body": "tools/noctes-widget non si avvia, quindi niente può mettere carta sul desktop. Le note si aprono, si salvano e si modificano comunque.",
+      "title": "I post-it richiedono python3"
+    },
+    "unreadable": {
+      "moved": "È conservato intatto come {path}. D'ora in poi le note vengono salvate in un nuovo notes.json.",
+      "stuck": "Impossibile leggere o spostare {path}, quindi noctes non ci scriverà sopra. Correggilo o spostalo, poi ricarica.",
+      "title": "Impossibile leggere notes.json"
+    }
+  },
+  "panel": {
+    "color_dynamic_classic": "Dinamico: questa nota ha una carta tutta sua. Attiva “La carta segue il tema” perché segua lo sfondo.",
+    "color_dynamic_theme": "Dinamico: questa nota ha una carta tutta sua che segue il tema, quindi cambia colore insieme allo sfondo.",
+    "color_fixed": "Carta fissa: resta di questo colore qualunque cosa faccia il tema.",
+    "color_glass": "Vetro: un pannello bianco traslucido al posto della carta, con il testo che segue il tema. Nitido, non sfocato - un plugin non ha la sfocatura a disposizione.",
+    "content_placeholder": "Scrivi la tua nota",
+    "delete": "Elimina",
+    "delete_confirm": "Clicca di nuovo per eliminare",
+    "empty": "Ancora nessun post-it",
+    "move": "Sposta i post-it (editor dei widget)",
+    "new": "Nuova",
+    "no_helper": "niente carta (manca python3)",
+    "not_on_screen": "non sullo schermo",
+    "save": "Salva",
+    "saved": "Salvato",
+    "settings": "Impostazioni del plugin",
+    "title_placeholder": "Titolo",
+    "unsaved": "Modifiche non salvate"
+  },
+  "settings": {
+    "default_color": {
+      "description": "Colore delle nuove note. Automatico dà a ogni nota il suo.",
+      "label": "Colore predefinito"
+    },
+    "font_path": {
+      "description": "Patrick Hand incluso come predefinito. Indica un percorso assoluto o con ~ a un altro .ttf/.otf, oppure lascia vuoto per il font della shell.",
+      "label": "File del font"
+    },
+    "font_size": {
+      "description": "Dimensione del testo. Un font calligrafico richiede un paio di punti in più di un font d'interfaccia.",
+      "label": "Dimensione del font"
+    },
+    "key": {
+      "label": "Chiave della nota"
+    },
+    "paper_height": {
+      "label": "Altezza della carta"
+    },
+    "paper_opacity_all": {
+      "description": "Quanto è coprente ogni post-it. Il testo resta del tutto opaco.",
+      "label": "Opacità della carta"
+    },
+    "paper_size": {
+      "description": "Dimensione della carta stessa, in px. Fai la casella del widget un po' più grande."
+    },
+    "paper_width": {
+      "label": "Larghezza della carta"
+    },
+    "save_path": {
+      "description": "Cartella di notes.json. Vuoto usa la cartella dati del plugin.",
+      "label": "Cartella di salvataggio"
+    },
+    "show_count": {
+      "label": "Mostra il numero di note nella barra"
+    },
+    "theme_colors": {
+      "description": "Usa la palette di Noctalia al posto dei colori classici della carta. La palette segue lo sfondo, quindi ogni post-it cambia colore con esso.",
+      "label": "La carta segue il tema"
+    },
+    "tilt": {
+      "description": "I fogli stanno inclinati di un piccolo angolo casuale. Disattivarlo li raddrizza tutti; riattivarlo dà a ciascuno un angolo nuovo.",
+      "label": "Fogli storti"
+    }
+  }
+}

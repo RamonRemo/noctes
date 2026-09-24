@@ -39,7 +39,7 @@
     "color_dynamic_classic": "Dynamic: this note gets a paper of its own. Turn on “Paper follows the theme” to make it track the wallpaper.",
     "color_dynamic_theme": "Dynamic: this note gets a paper of its own that follows the theme, so it recolors with the wallpaper.",
     "color_fixed": "Fixed paper: stays this color whatever the theme does.",
-    "color_glass": "Glass: a translucent pane instead of paper, tinted by the shell's surface. Sharp, not blurred - a plugin gets no blur to work with.",
+    "color_glass": "Glass: a white translucent pane instead of paper, with text that follows the theme. Sharp, not blurred - a plugin gets no blur to work with.",
     "content_placeholder": "Write your note",
     "delete": "Delete",
     "delete_confirm": "Click again to delete",
@@ -56,7 +56,7 @@
   },
   "settings": {
     "default_color": {
-      "description": "Colour new notes get. Automatic gives each note its own.",
+      "description": "Color new notes get. Automatic gives each note its own.",
       "label": "Default color"
     },
     "font_path": {

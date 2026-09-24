@@ -173,6 +173,23 @@ class TestTranslations(unittest.TestCase):
                 with self.subTest(f"{path.name}:{key}"):
                     self.assertIn(key, stems)
 
+    def test_a_caption_names_the_switch_the_way_the_settings_do(self):
+        # The dynamic-paper caption tells people which switch to turn on; in
+        # every language it has to quote that switch's own label.
+        for path in self.files:
+            flat = flatten(json.loads(path.read_text()))
+            with self.subTest(path.name):
+                self.assertIn(flat["settings.theme_colors.label"], flat["panel.color_dynamic_classic"])
+
+    def test_placeholders_survive_translation(self):
+        english = flatten(json.loads((TRANSLATIONS / "en.json").read_text()))
+        for path in self.files:
+            flat = flatten(json.loads(path.read_text()))
+            for key, value in english.items():
+                for name in re.findall(r"\{\w+\}", value):
+                    with self.subTest(f"{path.name}:{key}"):
+                        self.assertIn(name, flat[key])
+
     def test_no_translation_is_left_empty(self):
         for path in self.files:
             for key, value in flatten(json.loads(path.read_text())).items():

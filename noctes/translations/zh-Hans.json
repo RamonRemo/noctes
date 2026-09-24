@@ -1,0 +1,102 @@
+{
+  "bar": {
+    "tooltip": {
+      "one": "1 条便签",
+      "other": "{count} 条便签"
+    }
+  },
+  "color": {
+    "auto": "动态（跟随主题）",
+    "blue": "蓝色",
+    "gray": "灰色",
+    "green": "绿色",
+    "orange": "橙色",
+    "pink": "粉色",
+    "purple": "紫色",
+    "red": "红色",
+    "yellow": "黄色"
+  },
+  "note": {
+    "empty_hint": "点击以书写",
+    "loading": "..."
+  },
+  "notify": {
+    "add_failed": {
+      "body": "编辑 settings.toml 失败。请关闭桌面小部件编辑器后重试。",
+      "title": "无法添加便签"
+    },
+    "no_tool": {
+      "body": "tools/noctes-widget 无法运行，因此无法把纸贴到桌面上。便签仍可正常打开、保存和编辑。",
+      "title": "便签需要 python3"
+    },
+    "unreadable": {
+      "moved": "原文件已原样保留为 {path}。之后的便签将保存到新的 notes.json。",
+      "stuck": "无法读取也无法移走 {path}，因此 noctes 不会覆盖它。请修复或移走该文件，然后重新加载。",
+      "title": "无法读取 notes.json"
+    }
+  },
+  "panel": {
+    "color_dynamic_classic": "动态：这条便签会有自己的纸张。打开“纸张跟随主题”即可随壁纸变化。",
+    "color_dynamic_theme": "动态：这条便签会有自己的、跟随主题的纸张，会随壁纸一起变色。",
+    "color_fixed": "固定纸张：无论主题如何变化都保持此颜色。",
+    "color_glass": "玻璃：用白色半透明面板代替纸张，文字跟随主题。清晰，没有模糊（插件无法使用模糊效果）。",
+    "content_placeholder": "写下你的便签",
+    "delete": "删除",
+    "delete_confirm": "再次点击以删除",
+    "empty": "还没有便签",
+    "move": "移动便签（小部件编辑器）",
+    "new": "新建",
+    "no_helper": "没有纸张（缺少 python3）",
+    "not_on_screen": "不在屏幕上",
+    "save": "保存",
+    "saved": "已保存",
+    "settings": "插件设置",
+    "title_placeholder": "标题",
+    "unsaved": "未保存的更改"
+  },
+  "settings": {
+    "default_color": {
+      "description": "新便签使用的颜色。选择自动时每条便签各有颜色。",
+      "label": "默认颜色"
+    },
+    "font_path": {
+      "description": "默认使用内置的 Patrick Hand。可填写其他 .ttf/.otf 的绝对路径或 ~ 路径，留空则使用 shell 字体。",
+      "label": "字体文件"
+    },
+    "font_size": {
+      "description": "正文字号。手写字体需要比界面字体大几个点。",
+      "label": "字号"
+    },
+    "key": {
+      "label": "便签键"
+    },
+    "paper_height": {
+      "label": "纸张高度"
+    },
+    "paper_opacity_all": {
+      "description": "所有便签纸张的不透明度。文字始终完全不透明。",
+      "label": "纸张不透明度"
+    },
+    "paper_size": {
+      "description": "纸张本身的尺寸（px）。小部件框要稍大一些。"
+    },
+    "paper_width": {
+      "label": "纸张宽度"
+    },
+    "save_path": {
+      "description": "notes.json 所在的文件夹。留空则使用插件自身的数据目录。",
+      "label": "保存文件夹"
+    },
+    "show_count": {
+      "label": "在栏上显示便签数量"
+    },
+    "theme_colors": {
+      "description": "使用 Noctalia 调色板代替经典纸张颜色。调色板跟随壁纸，因此每张便签都会随之变色。",
+      "label": "纸张跟随主题"
+    },
+    "tilt": {
+      "description": "纸张以较小的随机角度摆放。关闭后全部摆正；再次打开会为每张重新随机一个角度。",
+      "label": "歪斜的纸张"
+    }
+  }
+}

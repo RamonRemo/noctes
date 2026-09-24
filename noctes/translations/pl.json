@@ -1,0 +1,102 @@
+{
+  "bar": {
+    "tooltip": {
+      "one": "1 notatka",
+      "other": "Notatki: {count}"
+    }
+  },
+  "color": {
+    "auto": "Dynamiczny (zgodny z motywem)",
+    "blue": "Niebieski",
+    "gray": "Szary",
+    "green": "Zielony",
+    "orange": "Pomarańczowy",
+    "pink": "Różowy",
+    "purple": "Fioletowy",
+    "red": "Czerwony",
+    "yellow": "Żółty"
+  },
+  "note": {
+    "empty_hint": "Kliknij, aby pisać",
+    "loading": "..."
+  },
+  "notify": {
+    "add_failed": {
+      "body": "Edycja settings.toml się nie powiodła. Zamknij edytor widżetów pulpitu i spróbuj ponownie.",
+      "title": "Nie udało się dodać karteczki"
+    },
+    "no_tool": {
+      "body": "tools/noctes-widget się nie uruchamia, więc nic nie może położyć papieru na pulpicie. Notatki nadal się otwierają, zapisują i edytują.",
+      "title": "Karteczki potrzebują python3"
+    },
+    "unreadable": {
+      "moved": "Zachowano go bez zmian jako {path}. Od teraz notatki zapisują się do nowego notes.json.",
+      "stuck": "Nie udało się odczytać ani przenieść {path}, więc noctes nie będzie go nadpisywać. Napraw lub przenieś plik, a potem przeładuj.",
+      "title": "Nie udało się odczytać notes.json"
+    }
+  },
+  "panel": {
+    "color_dynamic_classic": "Dynamiczny: ta notatka dostaje własny papier. Włącz „Papier zgodny z motywem”, aby podążał za tapetą.",
+    "color_dynamic_theme": "Dynamiczny: ta notatka dostaje własny papier zgodny z motywem, więc zmienia kolor razem z tapetą.",
+    "color_fixed": "Stały papier: zostaje w tym kolorze, cokolwiek zrobi motyw.",
+    "color_glass": "Szkło: biała półprzezroczysta tafla zamiast papieru, tekst zgodny z motywem. Ostre, bez rozmycia - wtyczka nie ma dostępu do rozmycia.",
+    "content_placeholder": "Napisz notatkę",
+    "delete": "Usuń",
+    "delete_confirm": "Kliknij ponownie, aby usunąć",
+    "empty": "Jeszcze nie ma karteczek",
+    "move": "Przesuń karteczki (edytor widżetów)",
+    "new": "Nowa",
+    "no_helper": "brak papieru (brak python3)",
+    "not_on_screen": "poza ekranem",
+    "save": "Zapisz",
+    "saved": "Zapisano",
+    "settings": "Ustawienia wtyczki",
+    "title_placeholder": "Tytuł",
+    "unsaved": "Niezapisane zmiany"
+  },
+  "settings": {
+    "default_color": {
+      "description": "Kolor nowych notatek. Automatyczny daje każdej notatce własny.",
+      "label": "Domyślny kolor"
+    },
+    "font_path": {
+      "description": "Domyślnie dołączona Patrick Hand. Podaj ścieżkę bezwzględną lub z ~ do innego .ttf/.otf albo zostaw puste, aby użyć czcionki powłoki.",
+      "label": "Plik czcionki"
+    },
+    "font_size": {
+      "description": "Rozmiar tekstu. Czcionka odręczna potrzebuje kilku punktów więcej niż czcionka interfejsu.",
+      "label": "Rozmiar czcionki"
+    },
+    "key": {
+      "label": "Klucz notatki"
+    },
+    "paper_height": {
+      "label": "Wysokość papieru"
+    },
+    "paper_opacity_all": {
+      "description": "Jak bardzo kryje każda karteczka. Tekst pozostaje w pełni kryjący.",
+      "label": "Krycie papieru"
+    },
+    "paper_size": {
+      "description": "Rozmiar samego papieru w px. Zrób ramkę widżetu trochę większą."
+    },
+    "paper_width": {
+      "label": "Szerokość papieru"
+    },
+    "save_path": {
+      "description": "Folder na notes.json. Puste oznacza katalog danych wtyczki.",
+      "label": "Folder zapisu"
+    },
+    "show_count": {
+      "label": "Pokazuj liczbę notatek na pasku"
+    },
+    "theme_colors": {
+      "description": "Używa palety Noctalia zamiast klasycznych kolorów papieru. Paleta podąża za tapetą, więc każda karteczka zmienia z nią kolor.",
+      "label": "Papier zgodny z motywem"
+    },
+    "tilt": {
+      "description": "Kartki leżą pod małym losowym kątem. Wyłączenie prostuje wszystkie; ponowne włączenie daje każdej nowy kąt.",
+      "label": "Krzywe kartki"
+    }
+  }
+}

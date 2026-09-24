@@ -1,0 +1,102 @@
+{
+  "bar": {
+    "tooltip": {
+      "one": "メモ 1 件",
+      "other": "メモ {count} 件"
+    }
+  },
+  "color": {
+    "auto": "ダイナミック（テーマに追従）",
+    "blue": "青",
+    "gray": "グレー",
+    "green": "緑",
+    "orange": "オレンジ",
+    "pink": "ピンク",
+    "purple": "紫",
+    "red": "赤",
+    "yellow": "黄"
+  },
+  "note": {
+    "empty_hint": "クリックして書く",
+    "loading": "..."
+  },
+  "notify": {
+    "add_failed": {
+      "body": "settings.toml の編集に失敗しました。デスクトップウィジェットエディターを閉じてから、もう一度お試しください。",
+      "title": "付箋を追加できませんでした"
+    },
+    "no_tool": {
+      "body": "tools/noctes-widget を実行できないため、デスクトップに紙を貼れません。メモの表示・保存・編集はそのまま使えます。",
+      "title": "付箋には python3 が必要です"
+    },
+    "unreadable": {
+      "moved": "元のファイルは {path} としてそのまま残してあります。これからのメモは新しい notes.json に保存されます。",
+      "stuck": "{path} を読み込むことも移動することもできなかったため、noctes は上書きしません。ファイルを修正するか移動してから、再読み込みしてください。",
+      "title": "notes.json を読み込めませんでした"
+    }
+  },
+  "panel": {
+    "color_dynamic_classic": "ダイナミック：このメモには専用の紙が割り当てられます。壁紙に合わせるには「紙をテーマに合わせる」をオンにしてください。",
+    "color_dynamic_theme": "ダイナミック：このメモにはテーマに合わせた専用の紙が割り当てられ、壁紙と一緒に色が変わります。",
+    "color_fixed": "固定の紙：テーマが変わってもこの色のままです。",
+    "color_glass": "ガラス：紙の代わりに白い半透明の板を使い、文字はテーマに合わせます。ぼかしはありません（プラグインではぼかしを使えません）。",
+    "content_placeholder": "メモを書く",
+    "delete": "削除",
+    "delete_confirm": "もう一度クリックで削除",
+    "empty": "付箋はまだありません",
+    "move": "付箋を移動（ウィジェットエディター）",
+    "new": "新規",
+    "no_helper": "紙なし（python3 がありません）",
+    "not_on_screen": "画面外",
+    "save": "保存",
+    "saved": "保存済み",
+    "settings": "プラグイン設定",
+    "title_placeholder": "タイトル",
+    "unsaved": "未保存の変更"
+  },
+  "settings": {
+    "default_color": {
+      "description": "新しいメモの色。自動にするとメモごとに色が付きます。",
+      "label": "既定の色"
+    },
+    "font_path": {
+      "description": "既定は同梱の Patrick Hand。別の .ttf/.otf を使うには絶対パスか ~ から始まるパスを指定し、シェルのフォントを使うなら空欄にします。",
+      "label": "フォントファイル"
+    },
+    "font_size": {
+      "description": "本文のサイズ。手書きフォントは UI フォントより数ポイント大きめが読みやすくなります。",
+      "label": "フォントサイズ"
+    },
+    "key": {
+      "label": "メモのキー"
+    },
+    "paper_height": {
+      "label": "紙の高さ"
+    },
+    "paper_opacity_all": {
+      "description": "付箋の紙の不透明度。文字は常に不透明のままです。",
+      "label": "紙の不透明度"
+    },
+    "paper_size": {
+      "description": "紙そのもののサイズ（px）。ウィジェットの枠は少し大きめにしてください。"
+    },
+    "paper_width": {
+      "label": "紙の幅"
+    },
+    "save_path": {
+      "description": "notes.json の保存先。空欄ならプラグイン自身のデータディレクトリを使います。",
+      "label": "保存先フォルダー"
+    },
+    "show_count": {
+      "label": "バーにメモの数を表示"
+    },
+    "theme_colors": {
+      "description": "クラシックな紙の色の代わりに Noctalia のパレットを使います。パレットは壁紙に合わせて変わるので、付箋の色も一緒に変わります。",
+      "label": "紙をテーマに合わせる"
+    },
+    "tilt": {
+      "description": "紙を小さなランダムな角度で置きます。オフにするとすべてまっすぐになり、再びオンにするとそれぞれ新しい角度が付きます。",
+      "label": "紙を傾ける"
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "bar": {
+    "tooltip": {
+      "one": "1 Notiz",
+      "other": "{count} Notizen"
+    }
+  },
+  "color": {
+    "auto": "Dynamisch (folgt dem Theme)",
+    "blue": "Blau",
+    "gray": "Grau",
+    "green": "Grün",
+    "orange": "Orange",
+    "pink": "Rosa",
+    "purple": "Lila",
+    "red": "Rot",
+    "yellow": "Gelb"
+  },
+  "note": {
+    "empty_hint": "Zum Schreiben klicken",
+    "loading": "..."
+  },
+  "notify": {
+    "add_failed": {
+      "body": "settings.toml konnte nicht bearbeitet werden. Schließe den Desktop-Widget-Editor und versuche es erneut.",
+      "title": "Haftnotiz konnte nicht hinzugefügt werden"
+    },
+    "no_tool": {
+      "body": "tools/noctes-widget lässt sich nicht ausführen, daher kann nichts Papier auf den Desktop legen. Notizen lassen sich weiterhin öffnen, speichern und bearbeiten.",
+      "title": "Haftnotizen brauchen python3"
+    },
+    "unreadable": {
+      "moved": "Sie bleibt unverändert als {path} erhalten. Notizen werden ab jetzt in einer neuen notes.json gespeichert.",
+      "stuck": "{path} konnte weder gelesen noch beiseitegelegt werden, daher speichert noctes nicht darüber. Repariere oder verschiebe die Datei und lade dann neu.",
+      "title": "notes.json konnte nicht gelesen werden"
+    }
+  },
+  "panel": {
+    "color_dynamic_classic": "Dynamisch: Diese Notiz bekommt ihr eigenes Papier. Schalte „Papier folgt dem Theme“ ein, damit es dem Hintergrundbild folgt.",
+    "color_dynamic_theme": "Dynamisch: Diese Notiz bekommt ihr eigenes Papier, das dem Theme folgt und seine Farbe mit dem Hintergrundbild ändert.",
+    "color_fixed": "Festes Papier: bleibt in dieser Farbe, egal was das Theme tut.",
+    "color_glass": "Glas: eine weiße, durchscheinende Scheibe statt Papier, der Text folgt dem Theme. Scharf, nicht weichgezeichnet - ein Plugin hat keinen Weichzeichner zur Verfügung.",
+    "content_placeholder": "Notiz schreiben",
+    "delete": "Löschen",
+    "delete_confirm": "Zum Löschen erneut klicken",
+    "empty": "Noch keine Haftnotizen",
+    "move": "Haftnotizen verschieben (Widget-Editor)",
+    "new": "Neu",
+    "no_helper": "kein Papier (python3 fehlt)",
+    "not_on_screen": "nicht auf dem Bildschirm",
+    "save": "Speichern",
+    "saved": "Gespeichert",
+    "settings": "Plugin-Einstellungen",
+    "title_placeholder": "Titel",
+    "unsaved": "Ungespeicherte Änderungen"
+  },
+  "settings": {
+    "default_color": {
+      "description": "Farbe für neue Notizen. Automatisch gibt jeder Notiz ihre eigene.",
+      "label": "Standardfarbe"
+    },
+    "font_path": {
+      "description": "Standardmäßig die mitgelieferte Patrick Hand. Gib einen absoluten oder ~-Pfad zu einer anderen .ttf/.otf an oder lass das Feld leer für die Shell-Schrift.",
+      "label": "Schriftdatei"
+    },
+    "font_size": {
+      "description": "Größe des Textes. Eine Handschrift braucht ein paar Punkte mehr als eine UI-Schrift.",
+      "label": "Schriftgröße"
+    },
+    "key": {
+      "label": "Notiz-Schlüssel"
+    },
+    "paper_height": {
+      "label": "Papierhöhe"
+    },
+    "paper_opacity_all": {
+      "description": "Wie deckend jede Haftnotiz ist. Der Text bleibt vollständig deckend.",
+      "label": "Papierdeckkraft"
+    },
+    "paper_size": {
+      "description": "Größe des Papiers selbst, in px. Mach die Widget-Box etwas größer."
+    },
+    "paper_width": {
+      "label": "Papierbreite"
+    },
+    "save_path": {
+      "description": "Ordner für notes.json. Leer verwendet das Datenverzeichnis des Plugins.",
+      "label": "Speicherordner"
+    },
+    "show_count": {
+      "label": "Anzahl der Notizen in der Leiste anzeigen"
+    },
+    "theme_colors": {
+      "description": "Nutzt die Noctalia-Palette statt der klassischen Papierfarben. Die Palette folgt dem Hintergrundbild, also ändert jede Haftnotiz mit ihm ihre Farbe.",
+      "label": "Papier folgt dem Theme"
+    },
+    "tilt": {
+      "description": "Die Blätter liegen in einem kleinen zufälligen Winkel. Ausschalten richtet alle gerade aus; Einschalten gibt jedem einen neuen Winkel.",
+      "label": "Schiefe Blätter"
+    }
+  }
+}

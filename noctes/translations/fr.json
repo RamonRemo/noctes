@@ -1,0 +1,102 @@
+{
+  "bar": {
+    "tooltip": {
+      "one": "1 note",
+      "other": "{count} notes"
+    }
+  },
+  "color": {
+    "auto": "Dynamique (suit le thème)",
+    "blue": "Bleu",
+    "gray": "Gris",
+    "green": "Vert",
+    "orange": "Orange",
+    "pink": "Rose",
+    "purple": "Violet",
+    "red": "Rouge",
+    "yellow": "Jaune"
+  },
+  "note": {
+    "empty_hint": "Cliquez pour écrire",
+    "loading": "..."
+  },
+  "notify": {
+    "add_failed": {
+      "body": "La modification de settings.toml a échoué. Fermez l'éditeur de widgets du bureau et réessayez.",
+      "title": "Impossible d'ajouter le post-it"
+    },
+    "no_tool": {
+      "body": "tools/noctes-widget ne peut pas s'exécuter, donc rien ne peut poser de papier sur le bureau. Les notes s'ouvrent, s'enregistrent et se modifient toujours.",
+      "title": "Les post-it ont besoin de python3"
+    },
+    "unreadable": {
+      "moved": "Il est conservé intact sous le nom {path}. Les notes sont désormais enregistrées dans un nouveau notes.json.",
+      "stuck": "Impossible de lire ou de déplacer {path} : noctes n'écrira pas par-dessus. Corrigez-le ou déplacez-le, puis rechargez.",
+      "title": "Impossible de lire notes.json"
+    }
+  },
+  "panel": {
+    "color_dynamic_classic": "Dynamique : cette note reçoit son propre papier. Activez « Le papier suit le thème » pour qu'il suive le fond d'écran.",
+    "color_dynamic_theme": "Dynamique : cette note reçoit son propre papier, qui suit le thème et change de couleur avec le fond d'écran.",
+    "color_fixed": "Papier fixe : il garde cette couleur quoi que fasse le thème.",
+    "color_glass": "Verre : une vitre blanche translucide au lieu du papier, avec un texte qui suit le thème. Net, sans flou - un plugin n'a pas accès au flou.",
+    "content_placeholder": "Écrivez votre note",
+    "delete": "Supprimer",
+    "delete_confirm": "Cliquez encore pour supprimer",
+    "empty": "Aucun post-it pour l'instant",
+    "move": "Déplacer les post-it (éditeur de widgets)",
+    "new": "Nouveau",
+    "no_helper": "pas de papier (python3 manquant)",
+    "not_on_screen": "hors écran",
+    "save": "Enregistrer",
+    "saved": "Enregistré",
+    "settings": "Paramètres du plugin",
+    "title_placeholder": "Titre",
+    "unsaved": "Modifications non enregistrées"
+  },
+  "settings": {
+    "default_color": {
+      "description": "Couleur des nouvelles notes. Automatique donne à chaque note la sienne.",
+      "label": "Couleur par défaut"
+    },
+    "font_path": {
+      "description": "Patrick Hand fournie par défaut. Indiquez un chemin absolu ou avec ~ vers un autre .ttf/.otf, ou laissez vide pour la police du shell.",
+      "label": "Fichier de police"
+    },
+    "font_size": {
+      "description": "Taille du texte. Une police manuscrite demande quelques points de plus qu'une police d'interface.",
+      "label": "Taille de police"
+    },
+    "key": {
+      "label": "Clé de la note"
+    },
+    "paper_height": {
+      "label": "Hauteur du papier"
+    },
+    "paper_opacity_all": {
+      "description": "Opacité de chaque post-it. Le texte reste entièrement opaque.",
+      "label": "Opacité du papier"
+    },
+    "paper_size": {
+      "description": "Taille du papier lui-même, en px. Prévoyez une boîte de widget un peu plus grande."
+    },
+    "paper_width": {
+      "label": "Largeur du papier"
+    },
+    "save_path": {
+      "description": "Dossier de notes.json. Vide utilise le dossier de données du plugin.",
+      "label": "Dossier d'enregistrement"
+    },
+    "show_count": {
+      "label": "Afficher le nombre de notes dans la barre"
+    },
+    "theme_colors": {
+      "description": "Utilise la palette de Noctalia au lieu des couleurs de papier classiques. La palette suit le fond d'écran, donc chaque post-it change de couleur avec lui.",
+      "label": "Le papier suit le thème"
+    },
+    "tilt": {
+      "description": "Les feuilles sont posées avec un petit angle aléatoire. Désactiver les redresse toutes ; réactiver donne à chacune un nouvel angle.",
+      "label": "Feuilles de travers"
+    }
+  }
+}

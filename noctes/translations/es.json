@@ -1,0 +1,102 @@
+{
+  "bar": {
+    "tooltip": {
+      "one": "1 nota",
+      "other": "{count} notas"
+    }
+  },
+  "color": {
+    "auto": "Dinámico (sigue el tema)",
+    "blue": "Azul",
+    "gray": "Gris",
+    "green": "Verde",
+    "orange": "Naranja",
+    "pink": "Rosa",
+    "purple": "Morado",
+    "red": "Rojo",
+    "yellow": "Amarillo"
+  },
+  "note": {
+    "empty_hint": "Haz clic para escribir",
+    "loading": "..."
+  },
+  "notify": {
+    "add_failed": {
+      "body": "Falló la edición de settings.toml. Cierra el editor de widgets del escritorio e inténtalo de nuevo.",
+      "title": "No se pudo añadir la nota adhesiva"
+    },
+    "no_tool": {
+      "body": "tools/noctes-widget no se ejecuta, así que nada puede poner papel en el escritorio. Las notas se siguen abriendo, guardando y editando.",
+      "title": "Las notas adhesivas necesitan python3"
+    },
+    "unreadable": {
+      "moved": "Se conserva intacto como {path}. A partir de ahora las notas se guardan en un notes.json nuevo.",
+      "stuck": "No se pudo leer ni apartar {path}, así que noctes no guardará encima. Corrígelo o muévelo y recarga.",
+      "title": "No se pudo leer notes.json"
+    }
+  },
+  "panel": {
+    "color_dynamic_classic": "Dinámico: esta nota tiene un papel propio. Activa “El papel sigue el tema” para que siga el fondo de pantalla.",
+    "color_dynamic_theme": "Dinámico: esta nota tiene un papel propio que sigue el tema, así que cambia de color con el fondo de pantalla.",
+    "color_fixed": "Papel fijo: se queda de este color haga lo que haga el tema.",
+    "color_glass": "Cristal: un panel blanco translúcido en lugar de papel, con el texto siguiendo el tema. Nítido, sin desenfoque - un plugin no dispone de desenfoque.",
+    "content_placeholder": "Escribe tu nota",
+    "delete": "Eliminar",
+    "delete_confirm": "Haz clic otra vez para eliminar",
+    "empty": "Aún no hay notas adhesivas",
+    "move": "Mover notas (editor de widgets)",
+    "new": "Nueva",
+    "no_helper": "sin papel (falta python3)",
+    "not_on_screen": "fuera de pantalla",
+    "save": "Guardar",
+    "saved": "Guardado",
+    "settings": "Ajustes del plugin",
+    "title_placeholder": "Título",
+    "unsaved": "Cambios sin guardar"
+  },
+  "settings": {
+    "default_color": {
+      "description": "Color que reciben las notas nuevas. Automático da a cada nota el suyo.",
+      "label": "Color predeterminado"
+    },
+    "font_path": {
+      "description": "Patrick Hand incluida por defecto. Indica una ruta absoluta o con ~ a otro .ttf/.otf, o déjalo vacío para usar la fuente del shell.",
+      "label": "Archivo de fuente"
+    },
+    "font_size": {
+      "description": "Tamaño del texto. Una fuente manuscrita necesita un par de puntos más que una fuente de interfaz.",
+      "label": "Tamaño de fuente"
+    },
+    "key": {
+      "label": "Clave de la nota"
+    },
+    "paper_height": {
+      "label": "Alto del papel"
+    },
+    "paper_opacity_all": {
+      "description": "Lo sólida que es cada nota. El texto sigue siendo totalmente opaco.",
+      "label": "Opacidad del papel"
+    },
+    "paper_size": {
+      "description": "Tamaño del propio papel, en px. Haz la caja del widget un poco más grande."
+    },
+    "paper_width": {
+      "label": "Ancho del papel"
+    },
+    "save_path": {
+      "description": "Carpeta de notes.json. Vacío usa el directorio de datos del propio plugin.",
+      "label": "Carpeta de guardado"
+    },
+    "show_count": {
+      "label": "Mostrar el número de notas en la barra"
+    },
+    "theme_colors": {
+      "description": "Usa la paleta de Noctalia en lugar de los colores clásicos de papel. La paleta sigue el fondo de pantalla, así que cada nota cambia de color con él.",
+      "label": "El papel sigue el tema"
+    },
+    "tilt": {
+      "description": "Las hojas quedan en un pequeño ángulo aleatorio. Desactivarlo las endereza todas; volver a activarlo da a cada una un ángulo nuevo.",
+      "label": "Hojas torcidas"
+    }
+  }
+}

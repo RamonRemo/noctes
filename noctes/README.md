@@ -61,9 +61,8 @@ noctalia msg plugin remo/noctes:service all desk
 The desktop-widget editor still works: its sheets arrive untilted, keyless and
 framed, and the service adopts them.
 
-A note can still end up with no sheet - its widget deleted in the editor, or
-made while python3 was missing. The panel says so where it would name the
-screen; see [Dependencies](#dependencies) for getting it back on the desk.
+A note made while python3 was missing has no sheet, and the panel says so where
+it would name the screen.
 
 Screenshots, the pitch and a walk through the first setup are in the
 [repository README](../README.md). The host quirks this code is shaped around
@@ -143,10 +142,11 @@ Sheets added through Noctalia's widget editor arrive square, keyless and framed.
 The service notices them on its next look at the settings file and adopts them:
 a key, an angle unless the sheet was already turned, no frame. A sheet that
 already has a key is left as its owner set it, square or framed. Once per start
-the same pass also drops settings an older noctes left on its sheets, which the
-host would otherwise warn about on every load: it asks `noctalia config
-validate` which ones are unknown, and removes only those, only on noctes' own
-sheets.
+the same pass also clears what an older noctes left behind: settings on its
+sheets that the host would otherwise warn about on every load - it asks
+`noctalia config validate` which ones are unknown, and removes only those, only
+on noctes' own sheets - and the `settings.toml.bak-noctes*` backups older
+versions wrote beside the settings file.
 
 ## Storage
 
@@ -176,6 +176,15 @@ and is adopted on the next load.
 Deleting takes the note and its sheet together, and both are gone for good:
 there is no trash and no undo. The bin asks twice - the first click arms it, the
 second deletes - and that is the whole safety net a post-it gets.
+
+Deleting a sheet in Noctalia's widget editor deletes its note too, the next time
+the service reads the settings file: when the panel opens, or at the next start.
+A note is only reached through its sheet, so one whose sheet is gone is a note
+nobody would see again. Two things are never taken for a deletion: a sheet this
+machine never had - a synced `notes.json` carries notes whose sheets live on
+another machine - and every known sheet vanishing at once, which is a reset
+settings file rather than someone deleting post-its. The notes stay in both
+cases.
 
 ## Where sheets go
 
@@ -243,6 +252,15 @@ look different from the next. What belongs to the note rather than to the sheet
 is not here: the paper color is picked in the panel, and the opacity and the
 theme switch are plugin-wide, so each of those has one home and one control.
 
+## Languages
+
+English, Portuguese (Brazil), Spanish, French, German, Italian, Dutch, Polish,
+Russian, Ukrainian, Turkish, Japanese, Korean and Simplified Chinese, picked by
+the shell's own language setting. A file in `translations/` is named after the
+shell's language code exactly (`pt-BR`, `zh-Hans`); there is no fallback from
+`pt` to `pt-BR`, so a language the shell does not name the same way stays in
+English.
+
 ## Bundled font
 
 `PatrickHand-Regular.ttf` ships with the plugin and is the default, because
@@ -263,8 +281,8 @@ Only the paper needs it. The service asks once at startup whether the helper
 runs at all, and without it the notes still open, save and edit: **New** creates
 a note with no sheet, and the panel says so.
 
-A note that ends up with no sheet - one whose widget was deleted in Noctalia's
-editor - gets paper again by key:
+A note that has a key but no sheet on this machine - from a synced
+`notes.json`, say - gets paper by key:
 
 ```sh
 noctalia msg plugin remo/noctes:service all stick work
