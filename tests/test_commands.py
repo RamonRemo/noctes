@@ -470,6 +470,34 @@ class TestScatter(ToolCase):
         self.assertEqual(widget["settings"]["key"], "nota-1")
 
 
+class TestOldBackups(ToolCase):
+    """Older versions backed settings.toml up beside itself, one file per day
+    and later one fixed name. Nothing removed them."""
+
+    def test_they_are_removed(self):
+        self.write(fixtures.settings())
+        for name in ("settings.toml.bak-noctes", "settings.toml.bak-noctes-2026-09-22"):
+            (self.tmp / name).write_text("old")
+        self.run_tool("scatter")
+        self.assertEqual(self.files(), ["settings.toml"])
+        self.assertFalse(self.noctalia.validated)
+
+    def test_nobody_elses_backup_is_touched(self):
+        self.write(fixtures.settings())
+        for name in ("settings.toml.bak-screenshot-2026-09-14", "settings.toml.bak-noctes-mine",
+                     "settings.toml.bak"):
+            (self.tmp / name).write_text("theirs")
+        self.run_tool("scatter")
+        self.assertEqual(len(self.files()), 4)
+
+    def test_dry_run_only_reports_them(self):
+        self.write(fixtures.settings())
+        (self.tmp / "settings.toml.bak-noctes").write_text("old")
+        self.run_tool("scatter", "--dry-run")
+        self.assertIn("settings.toml.bak-noctes", self.files())
+        self.assertIn("remove old backup settings.toml.bak-noctes", self.output)
+
+
 class TestStaleSettings(ToolCase):
     """Settings an older noctes wrote, which the host now flags as unknown.
 
