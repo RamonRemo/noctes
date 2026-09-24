@@ -42,24 +42,40 @@ there is no note list, because the notes are already on screen.
 - Notes live in one plain JSON file, written through a rename so a crash cannot
   leave half of it. No database, no sync, no account - delete the plugin and
   your notes are still readable on disk.
+- The sheets look after themselves. Delete one in Noctalia's widget editor and
+  its note goes with it; switch a monitor off and its sheets move to one that
+  is still on, then go back when it returns.
 - A bar widget with the note count, which opens the panel.
 - IPC, so a quick note can be one keybind away.
 - In English, Portuguese, Spanish, French, German, Italian, Dutch, Polish,
-  Russian, Ukrainian, Turkish, Japanese, Korean and Chinese.
+  Russian, Ukrainian, Turkish, Japanese, Korean and Chinese. The catalog copy
+  ships English and Portuguese; the rest are in this repository until reviewed.
 
 ## Install
 
 Needs `python3`, which puts the sheets on the desktop - see
 [Dependencies](noctes/README.md#dependencies).
 
+Noctes is in the
+[community catalog](https://github.com/noctalia-dev/community-plugins/tree/main/noctes),
+which Noctalia ships as a default source. Enable it from **Settings -> Plugins
+-> Browse Plugins**, or:
+
 ```sh
-git clone https://github.com/RamonRemo/noctes.git ~/noctes
-noctalia msg plugins source add noctes path ~/noctes
 noctalia msg plugins enable remo/noctes
 noctalia msg plugin remo/noctes:service all desk
 ```
 
-That last line puts the first sheet on the screen you are working on, tilted and
+For the newest code before it reaches the catalog, run this repository as a
+local source instead; a local copy overrides the catalog one:
+
+```sh
+git clone https://github.com/RamonRemo/noctes.git ~/noctes
+noctalia msg plugins source add noctes path ~/noctes
+noctalia msg plugins enable remo/noctes
+```
+
+The `desk` line puts the first sheet on the screen you are working on, tilted and
 coloured. Click it and write. Every sheet after that comes from the panel's
 **+**, or from the same command again.
 
