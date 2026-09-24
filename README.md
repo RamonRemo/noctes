@@ -49,7 +49,8 @@ there is no note list, because the notes are already on screen.
 - IPC, so a quick note can be one keybind away.
 - In English, Portuguese, Spanish, French, German, Italian, Dutch, Polish,
   Russian, Ukrainian, Turkish, Japanese, Korean and Chinese. The catalog copy
-  ships English and Portuguese; the rest are in this repository until reviewed.
+  ships English; its translations come through
+  [Noctalia Translate](https://i18n.noctalia.dev).
 
 ## Install
 
