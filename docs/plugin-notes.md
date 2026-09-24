@@ -50,14 +50,30 @@ touches them. If your plugin wants a widget that is tilted, or without the
 rounded panel noctalia draws behind everything, or wants to create a widget at
 all, the only route is editing that file.
 
-noctes does exactly that, in `noctes/tools/noctes-widget`, whose every write backs the file up, runs
-`noctalia config validate`, and restores on failure - because:
+noctes does exactly that, in `noctes/tools/noctes-widget`. Three things about
+that file decide how such a tool has to write it.
 
-> An unrecognized key inside a widget's settings table does not fail
-> gracefully. It breaks the parse and takes the whole shell down with it: bar,
-> dock, wallpaper, everything, until the file is fixed.
+**The shell is watching it.** Noctalia has an inotify watch on the state
+directory and reloads whenever `settings.toml` itself changes. So a write
+reaches the shell on its own; following it with `noctalia msg config-reload`
+reloads everything a second time. And a file that is written first and
+validated second has already been loaded, bad or not, before anything checks it.
 
-Validate before reloading. Always.
+**`noctalia config validate` takes a path.** So the order can be the right one:
+write the candidate beside the real file, validate the candidate, and rename it
+over `settings.toml` only when it passes. Give the candidate a name that does
+not end in `.toml` - the watch reacts to `settings.toml` in the state directory
+and to any `*.toml` in the config directory, and nothing else.
+
+**What validate rejects is narrower than it looks.** An unknown key is a
+warning, not an error: the file is valid, and the host lists that key on every
+load until someone removes it. A syntax error is an error, and a shell already
+running keeps the config it had rather than loading the broken file. Neither
+takes the shell down - but the change you made never lands either.
+
+Hold a lock from reading the file to writing it, too. A double click starts two
+helpers; without one, both edit the same original and the second write erases
+the first.
 
 ## A setting whose effect lives outside the plugin
 
@@ -65,10 +81,17 @@ The "crooked sheets" switch cannot be read at render time, because rotation is
 host state: turning it off means rewriting every sheet's angle in
 `settings.toml`. Two things follow.
 
-A config reload **restarts the service**, so comparing the setting against a
-value held in memory never detects a change - the fresh copy always equals the
-setting. The last applied state has to be persisted; noctes keeps a `tilt.state`
-file next to the notes.
+The setting can change while the shell is not running, so what was last applied
+has to be persisted, not held in memory; noctes keeps a `tilt.state` file in its
+data directory. Write it only after the rewrite succeeded. Written first, a
+helper that failed leaves it claiming a state the sheets are not in, and nothing
+ever tries again.
+
+A settings change reaches a service that defines `onConfigChanged` in place:
+the host calls it without restarting the VM, so its memory survives. A service
+without it is torn down and started again. That call comes once per change -
+every step of a slider - so it is no place for anything expensive that the
+changed setting does not actually need.
 
 And the routine that tidies up sheets has to know about the switch too. Straight
 sheets have `rotation = 0.0`, which is exactly what "never been scattered" looks
@@ -97,8 +120,15 @@ right and the screen was empty.
 
 Same key name at both levels is legal, and the host warns that the entry value
 wins. If the plugin one is meant as a fallback, give the two different names -
-`paper_opacity` plugin-wide and `opacity_override` per entry - and publish the
-plugin value through state so the entry can read both.
+noctes had `paper_opacity` plugin-wide and `opacity_override` per sheet, until
+the override went - and publish the plugin value through state so the entry can
+read both.
+
+A setting you remove from the manifest stays in every user's `settings.toml`,
+flagged as unknown on every load. `noctalia config validate` names each one, so
+a tool can prune exactly those - after checking that the host flags none of the
+keys the manifest still declares, which is what it looks like when the host has
+not loaded the plugin's schema at all.
 
 ## Numeric settings need an explicit `step`
 
@@ -106,8 +136,8 @@ Leaving `step` off does not mean "continuous". The parser defaults it to `1.0`,
 so a float slider from 0 to 1 has exactly two reachable positions and reads as a
 broken control rather than a coarse one.
 
-Declare `step` on every `float`, finer than the range, with the default landing
-on a boundary. There is a ready-made test suite for this and neighbouring
+Declare `step` on every `double` (the host's name for a float; `float` is not a
+type it knows), finer than the range, with the default landing on a boundary. There is a ready-made test suite for this and neighbouring
 manifest mistakes in the community repo, at
 `claude-companion/tests/manifest_spec.py` - worth running against your own
 manifest before a PR.
@@ -172,6 +202,33 @@ Anything of yours that reads that file - a tool, the plugin itself -
 sees nothing until then. Two separate "it is broken" reports turned out to be
 this.
 
+## `state.set` wakes every watcher, every time
+
+The host stores the value and notifies every watcher of the key on each call -
+it never compares the new value with the old one. Setting a key to what it
+already holds is a full wake-up for every surface watching it.
+
+With one sheet that is invisible. With a wall of them it is the whole cost: a
+service that republishes its preferences on a two-second tick redraws every
+sheet every two seconds, and one that republishes a `ready` flag next to each
+edit redraws every sheet on every edit, whatever each sheet does to skip
+redrawing when its own note did not change. Set a key when its value changes
+and at no other time, and guard each watcher on the value it last drew anyway.
+
+A watcher registered after a `state.get` can miss a value set in between. Read
+the initial value after registering the watcher, not before.
+
+## Arrays in settings.toml come in two shapes
+
+Noctalia writes the file through toml++, which keeps an array on one line up to
+120 columns and wraps it past that. `widget_order` with two widgets is one line;
+with three it is wrapped. A fresh install has no `[desktop_widgets]` table at
+all. A tool that only knows the wrapped shape works on the author's desk and
+fails on a new user's first click.
+
+And `[lockscreen_widgets]` has a `widget_order` of its own. Match the one under
+`[desktop_widgets]`, not the first one in the file.
+
 ## Drawing paper with rectangles
 
 The `ui.*` vocabulary has no rotation, no clipping, no blur and no vector
@@ -185,9 +242,9 @@ is both cleaner and more convincing than the thing it replaced.
 
 **The folded corner** never worked. A diagonal can only be a staircase of
 rectangles; at one pixel a step it is as smooth as it can get, and the host's
-rotation still resamples it into visible hatching. It is off by default. The
-only real fix would be shipping an image per colour, which kills the dynamic
-palette - a bad trade for a dog-ear.
+rotation still resamples it into visible hatching. It was dropped. The only real
+fix would be shipping an image per colour, which kills the dynamic palette - a
+bad trade for a dog-ear.
 
 **The tape** is just a translucent white strip, and it is the piece that does
 the most work per line of code. Worth remembering when a shadow is fighting you.
@@ -200,6 +257,6 @@ commands back. Nothing but the service touches disk.
 
 That is not a noctalia requirement, it is just what stops four copies of a note
 list from disagreeing with each other. Writes are debounced onto a two second
-tick, and each sheet skips redrawing when the publish that woke it did not
-change the note it shows - with a wall of sheets, every keystroke would
-otherwise rebuild all of them.
+tick, each state key is set only when it changes, and each sheet skips redrawing
+when the publish that woke it did not change the note it shows - with a wall of
+sheets, every autosave would otherwise rebuild all of them.

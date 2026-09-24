@@ -21,10 +21,9 @@ whose colour was picked by hand keeps it whatever the theme does. Eight papers
 to pick from, plus two that are not paper: **black**, the one sheet written in
 white ink, and **glass**, a translucent pane whose text flips with the scheme.
 
-Dropping the theme entirely is one switch - *Paper follows the theme*,
-plugin-wide, with an *Always* / *Never* override on each sheet. Off, the sheets
-that have no colour of their own draw from eight classic papers instead of the
-palette.
+Dropping the theme entirely is one plugin-wide switch - *Paper follows the
+theme*. Off, the sheets that have no colour of their own draw from eight classic
+papers instead of the palette.
 
 ## Writing on them
 
@@ -37,10 +36,12 @@ there is no note list, because the notes are already on screen.
 
 ## In short
 
-- One sheet per note. Size, font size, tilt, tape, opacity and colour are per
-  sheet; defaults, theme following and storage path are plugin-wide.
-- Notes live in one plain JSON file. No database, no sync, no account - delete
-  the plugin and your notes are still readable on disk.
+- One sheet per note. Size, font and font size are per sheet; the colour
+  belongs to the note; opacity, tilt, theme following and the storage path are
+  plugin-wide.
+- Notes live in one plain JSON file, written through a rename so a crash cannot
+  leave half of it. No database, no sync, no account - delete the plugin and
+  your notes are still readable on disk.
 - A bar widget with the note count, which opens the panel.
 - IPC, so a quick note can be one keybind away.
 
@@ -71,6 +72,8 @@ noctalia msg plugin remo/noctes:service all desk           # note + sheet
 noctalia msg plugin remo/noctes:service all new "buy milk" # note only
 noctalia msg plugin remo/noctes:service all open work      # select a note by key
 noctalia msg plugin remo/noctes:service all move           # toggle the widget editor
+noctalia msg plugin remo/noctes:service all stick work     # give a keyed note a sheet
+noctalia msg plugin remo/noctes:service all gather         # sheets off a dead monitor
 noctalia msg plugin remo/noctes:service all reload         # re-read notes.json
 ```
 
@@ -86,8 +89,9 @@ noctalia msg plugin remo/noctes:service all reload         # re-read notes.json
   plugin API that are documented nowhere and cost an afternoon each. Writing a
   Noctalia plugin? Start there.
 - [`tests/README.md`](tests/README.md) - `tests/run` covers the helper that
-  edits Noctalia's `settings.toml`, and the manifest against the translations
-  and docs that have to agree with it. Standard library only.
+  edits Noctalia's `settings.toml`, the plugin's Luau against a stand-in for
+  the shell, and the manifest against the translations and docs that have to
+  agree with it. Python's standard library, plus Lua 5.4 for the Luau.
 
 ## License
 
