@@ -8,6 +8,8 @@ here runs the tool; it reads the files that ship.
 
 import json
 import re
+import shutil
+import subprocess
 import tomllib
 import unittest
 from pathlib import Path
@@ -72,12 +74,23 @@ class TestManifest(unittest.TestCase):
             self.assertTrue((PLUGIN / name).exists(), f"missing {name}")
 
     def test_every_entry_points_at_a_file_that_exists(self):
-        for group in ("service", "bar_widget", "panel", "desktop_widget"):
-            for entry in self.data.get(group, []) if isinstance(self.data.get(group), list) \
-                    else [self.data[group]] if group in self.data else []:
-                target = entry.get("entry")
-                if target:
-                    self.assertTrue((PLUGIN / target).exists(), f"{group}: missing {target}")
+        groups = ("service", "widget", "panel", "desktop_widget")
+        entries = [(group, entry) for group in groups for entry in self.data.get(group, [])]
+        # Every group this manifest declares, so a group renamed in the host's
+        # schema cannot leave its entries silently unchecked here again.
+        self.assertEqual({group for group, _ in entries}, set(groups))
+        for group, entry in entries:
+            with self.subTest(f"{group}:{entry.get('id')}"):
+                self.assertTrue((PLUGIN / entry["entry"]).exists(), f"missing {entry['entry']}")
+
+    @unittest.skipUnless(shutil.which("noctalia"), "no noctalia binary to lint with")
+    def test_the_host_linter_is_clean(self):
+        # Cross-checks every declared setting against the getConfig calls in the
+        # code: a setting read but not declared, or declared and never read.
+        run = subprocess.run(["noctalia", "plugins", "lint", str(PLUGIN)],
+                             capture_output=True, text=True)
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+        self.assertIn("0 errors, 0 warnings", run.stdout, run.stdout)
 
     def test_the_bundled_font_default_exists(self):
         fonts = [s for s in self._all_settings() if s.get("key") == "font_path"]
@@ -141,6 +154,24 @@ class TestTranslations(unittest.TestCase):
         for name, keys in sets.items():
             with self.subTest(name):
                 self.assertEqual(sorted(keys ^ english), [])
+
+    def test_every_translation_is_used(self):
+        # A key nothing asks for is a string translated into every locale for
+        # nobody. Plural keys are asked for by their stem, through trp.
+        code = MANIFEST.read_text() + "".join(p.read_text() for p in PLUGIN.glob("*.luau"))
+        english = flatten(json.loads((TRANSLATIONS / "en.json").read_text()))
+        for key in english:
+            stem = re.sub(r"\.(one|other)$", "", key)
+            with self.subTest(key):
+                self.assertIn(f'"{stem}"', code, f"{key} is never used")
+
+    def test_every_key_the_code_asks_for_is_translated(self):
+        english = flatten(json.loads((TRANSLATIONS / "en.json").read_text()))
+        stems = set(english) | {re.sub(r"\.(one|other)$", "", k) for k in english}
+        for path in PLUGIN.glob("*.luau"):
+            for key in re.findall(r'noctalia\.trp?\("([^"]+)"', path.read_text()):
+                with self.subTest(f"{path.name}:{key}"):
+                    self.assertIn(key, stems)
 
     def test_no_translation_is_left_empty(self):
         for path in self.files:

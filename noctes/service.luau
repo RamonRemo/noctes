@@ -7,69 +7,134 @@
 -- surfaces. Every surface (bar widget, panel, each sheet) is a thin client that
 -- reads noctes.* state and mutates through noctes.cmd.
 --
--- State published:
+-- State published. noctalia.state.set wakes every watcher of a key on every
+-- call, whether the value changed or not - the host compares nothing - and
+-- every sheet on the desk watches these. So each key is set when it changes
+-- and at no other time: a heartbeat, or a publish that resends unchanged keys
+-- alongside the one that changed, redraws the whole desk.
 --   noctes.notes        -> { { id, key, title, content, color, createdAt, updatedAt }, ... }
 --   noctes.ready        -> true once the file has been read
 --   noctes.boundKeys    -> { { key, output }, ... } - which notes have a sheet
 --   noctes.editing      -> note id the panel should open ("" = nothing selected)
 --   noctes.themeColors  -> the plugin-wide switch, mirrored for the sheets
 --   noctes.paperOpacity -> likewise
---   noctes.savePath     -> resolved directory, informational
+--   noctes.sheetsReady  -> false when the helper cannot run, so no sheet can be
+--                          drawn and the panel says so instead of offering one
 --
 -- A note's `key` is the handle a sheet binds to, so it survives the list
 -- reordering. Keys are unique; "" means the note has no sheet.
 --
 -- Commands accepted on noctes.cmd:
---   { op = "add", title?, content?, color?, key? }  -- creates and selects it
---   { op = "spawn_widget" }                         -- note and sheet together
---   { op = "stick", id }                            -- give a loose note a sheet
---   { op = "ensure", key }                          -- select the note with that
---                                                   -- key, creating it if absent
+--   { op = "spawn_widget", near? }       -- note and sheet together, on the
+--                                       -- screen holding the sheet keyed `near`
+--   { op = "ensure", key }              -- select the note with that key,
+--                                       -- creating it if absent
 --   { op = "update", id, title?, content?, color? }
---   { op = "remove", id }                           -- takes the sheet down too
---   { op = "set_color", id, color }                 -- "" clears to automatic
---   { op = "set_key", id, key }
---   { op = "toggle_edit" }                          -- Noctalia's widget editor
---   { op = "refresh" }                              -- re-read the sheet list
---   { op = "reload" }                               -- re-read notes.json
+--   { op = "remove", id }               -- takes the sheet down too
+--   { op = "set_color", id, color }     -- "" clears to automatic
+--   { op = "toggle_edit" }              -- Noctalia's widget editor
+--   { op = "refresh" }                  -- re-read the sheet list
+--   { op = "reload" }                   -- re-read notes.json
+--   { op = "gather" }                   -- sheets off a dead output
 
 local store = require("./store.luau")
 local desk = require("./desk.luau")
 
-local boundKeys = {}
+-- nil until the first read, so that read is published even when it finds no
+-- sheets: the state store outlives this service, and can still hold the list
+-- a previous run published.
+local boundKeys = nil
+
+-- The save_path the notes were last read under.
+local savePath = nil
 
 -- ── Publishing ──────────────────────────────────────────────────────────────
 
--- The plugin-wide look, mirrored into state for the sheets: a desktop widget's
--- getConfig sees its own settings, not the plugin's. Republished on the tick so
--- a sheet that loaded before the first publish still picks it up; watchers
--- ignore a value that has not changed, so the repeat costs nothing.
-local function publishPrefs()
-  noctalia.state.set("noctes.themeColors", noctalia.getConfig("theme_colors") == true)
-  noctalia.state.set("noctes.paperOpacity", tonumber(noctalia.getConfig("paper_opacity")) or 0.96)
+local published = {}
+
+-- For the scalar keys: set only when the value differs from the last one set.
+local function publishValue(key, value)
+  if published[key] == value then
+    return
+  end
+  published[key] = value
+  noctalia.state.set(key, value)
 end
 
-local function publish()
+-- Called only after the list changed; every caller checks that first.
+local function publishNotes()
   noctalia.state.set("noctes.notes", store.notes)
-  noctalia.state.set("noctes.ready", store.ready)
-  noctalia.state.set("noctes.boundKeys", boundKeys)
-  publishPrefs()
 end
+
+-- The plugin-wide look, mirrored into state for the sheets: a desktop widget's
+-- getConfig sees its own settings, not the plugin's.
+local function publishPrefs()
+  publishValue("noctes.themeColors", noctalia.getConfig("theme_colors") == true)
+  publishValue("noctes.paperOpacity", tonumber(noctalia.getConfig("paper_opacity")) or 0.96)
+end
+
+local function sameBound(a, b)
+  if a == nil or b == nil or #a ~= #b then
+    return false
+  end
+  for index, entry in ipairs(a) do
+    if entry.key ~= b[index].key or entry.output ~= b[index].output then
+      return false
+    end
+  end
+  return true
+end
+
+local refreshBoundKeys
 
 -- A sheet added through Noctalia's widget editor arrives with no key, square
 -- and framed, because those are fields a plugin cannot set as it is created.
 -- Adopting them here is what keeps that route working without a file watcher.
-local function refreshBoundKeys(adopt)
-  desk.boundKeys(function(bound, loose)
-    boundKeys = bound
-    noctalia.state.set("noctes.boundKeys", boundKeys)
+-- The sheet list is re-read afterwards whether or not the helper ran.
+local function tidySheets()
+  local started = desk.scatter(store.keys(), function()
+    refreshBoundKeys(false)
+  end)
+  if not started then
+    refreshBoundKeys(false)
+  end
+end
 
+refreshBoundKeys = function(adopt)
+  desk.boundKeys(function(bound, loose)
+    if not sameBound(bound, boundKeys) then
+      boundKeys = bound
+      noctalia.state.set("noctes.boundKeys", boundKeys)
+    end
     if loose > 0 and adopt ~= false then
-      desk.scatter(function()
-        refreshBoundKeys(false)
-      end)
+      tidySheets()
     end
   end)
+end
+
+local function keyIsBound(key)
+  for _, bound in ipairs(boundKeys or {}) do
+    if bound.key == key then
+      return true
+    end
+  end
+  return false
+end
+
+-- A sheet the helper has just made is on the desk now, whatever the next read
+-- of settings.toml says. Published before the note that goes with it, so the
+-- panel never flashes that note as "not on screen" while the file is re-read.
+local function markBound(key, output)
+  if keyIsBound(key) then
+    return
+  end
+  local next = {}
+  for _, bound in ipairs(boundKeys or {}) do
+    table.insert(next, bound)
+  end
+  table.insert(next, { key = key, output = output or "?" })
+  boundKeys = next
+  noctalia.state.set("noctes.boundKeys", boundKeys)
 end
 
 -- The panel has no keyboard-less way in: a sheet that creates a note has to
@@ -82,9 +147,15 @@ end
 
 local function addNote(fields)
   local note = store.add(fields)
-  publish()
+  publishNotes()
   select(note.id)
   return note
+end
+
+local function updateNote(id, fields)
+  if store.update(id, fields) ~= nil then
+    publishNotes()
+  end
 end
 
 local function removeNote(id)
@@ -93,9 +164,11 @@ local function removeNote(id)
     return
   end
   if key ~= "" then
-    desk.remove(key, refreshBoundKeys)
+    desk.remove(key, function()
+      refreshBoundKeys()
+    end)
   end
-  publish()
+  publishNotes()
   if noctalia.state.get("noctes.editing") == id then
     select("")
   end
@@ -103,36 +176,56 @@ end
 
 -- Note and sheet in one go: the sheet is created first, because the helper is
 -- what picks a key that nothing else holds.
-local function spawnWidget()
-  desk.add({ avoid = store.keys() }, function(key)
+--
+-- With no helper there is no sheet, and the note is still the point: it is
+-- created loose, and the panel edits it like any other.
+--
+-- `near` is the key of the note the panel was showing. The new sheet lands on
+-- that one's screen, because that is the screen its owner is looking at.
+local function spawnWidget(near)
+  local started = desk.add({ avoid = store.keys(), near = near }, function(key, output)
+    markBound(key, output)
     addNote({ key = key })
+    refreshBoundKeys()
+  end)
+
+  if started == false then
+    addNote({})
+  end
+end
+
+-- Gives a sheet back to a note whose own was deleted from Noctalia's widget
+-- editor. No button offers this - it is the `stick` IPC event, by key, for the
+-- note that would otherwise have no way back onto the desk.
+--
+-- A key already on the desk is left alone: two sheets on one key would both
+-- draw the same note. The helper refuses a second sheet for a key as well, so
+-- a keybind pressed twice before it answers still makes one.
+local function stickKey(key)
+  if store.byKey(key) == nil or keyIsBound(key) then
+    return
+  end
+  desk.add({ key = key, avoid = store.keys() }, function(_, output)
+    markBound(key, output)
     refreshBoundKeys()
   end)
 end
 
--- Gives a sheet to a note that has none: one made before the widget existed, or
--- one whose sheet was deleted from Noctalia's widget editor.
-local function stickNote(id)
-  local note = store.byId(id)
-  if note == nil then
-    return
-  end
-
-  desk.add({ key = note.key, avoid = store.keys() }, function(key)
-    -- A note that already had a key keeps it; a loose one takes the key the
-    -- helper picked.
-    if (note.key or "") == "" then
-      store.setKey(id, key)
-      publish()
+-- Sheets bound to a disconnected output are on no screen at all, and sheets
+-- that were moved off one go back when it returns. Nothing else moves, so this
+-- is safe on every output change.
+local function gatherSheets()
+  desk.gather(function(result)
+    if result.exitCode == 0 then
+      refreshBoundKeys()
     end
-    refreshBoundKeys()
   end)
 end
 
 -- Called by a sheet that has no note yet: it knows its key, not whether
 -- anything answers to it.
 local function ensureKey(key)
-  if type(key) ~= "string" then
+  if type(key) ~= "string" or key == "" then
     return
   end
   local existing = store.byKey(key)
@@ -143,50 +236,41 @@ local function ensureKey(key)
   addNote({ key = key })
 end
 
--- ── The crooked-sheets switch ───────────────────────────────────────────────
---
--- Rotation is host state, so this cannot be a render-time decision: turning it
--- off rewrites every sheet's angle. And it has to be compared against what was
--- last applied rather than a value held in memory, because a config reload
--- restarts this service and the fresh copy always equals the setting.
+-- ── Loading ─────────────────────────────────────────────────────────────────
 
-local function applyTilt(crooked)
-  local marker = store.sidecar("tilt.state")
-  if marker == nil then
-    return
-  end
-  noctalia.writeFile(marker, crooked and "random" or "square")
-  desk.tilt(crooked)
+local function configuredPath()
+  return noctalia.string.trim(noctalia.getConfig("save_path") or "")
 end
 
-local function syncTilt()
-  local marker = store.sidecar("tilt.state")
-  if marker == nil then
+local function tiltWanted()
+  return noctalia.getConfig("tilt") ~= false
+end
+
+-- A notes.json that would not read was moved aside, or could not even be
+-- that. Either way its owner has to know: the notes in it are not on screen.
+local function reportUnreadable(problem)
+  if problem == nil then
     return
   end
+  local body = problem.moved and "notify.unreadable.moved" or "notify.unreadable.stuck"
+  noctalia.notifyError(noctalia.tr("notify.unreadable.title"),
+    noctalia.tr(body, { path = problem.path }))
+end
 
-  local wanted = noctalia.getConfig("tilt") ~= false
-  local applied = "random"
-  if noctalia.fileExists(marker) then
-    applied = noctalia.string.trim(noctalia.readFile(marker) or "random")
-  end
+local function loadNotes()
+  savePath = configuredPath()
+  store.useDirectory()
+  reportUnreadable(store.load())
+  publishNotes()
+  publishValue("noctes.ready", store.ready)
+end
 
-  if (applied == "random") ~= wanted then
-    applyTilt(wanted)
-  end
+local function reload()
+  loadNotes()
+  refreshBoundKeys()
 end
 
 -- ── Wiring ──────────────────────────────────────────────────────────────────
-
-local function reload()
-  store.useDirectory()
-  noctalia.state.set("noctes.savePath", store.path() or "")
-  syncTilt()
-  store.load(function()
-    publish()
-    refreshBoundKeys()
-  end)
-end
 
 noctalia.state.watch("noctes.cmd", function(cmd)
   if type(cmd) ~= "table" then
@@ -194,34 +278,25 @@ noctalia.state.watch("noctes.cmd", function(cmd)
   end
 
   local op = cmd.op
-  if op == "add" then
-    addNote(cmd)
-  elseif op == "spawn_widget" then
-    spawnWidget()
-  elseif op == "stick" then
-    stickNote(cmd.id)
+  if op == "spawn_widget" then
+    spawnWidget(cmd.near)
   elseif op == "ensure" then
     ensureKey(cmd.key)
   elseif op == "update" then
-    store.update(cmd.id, cmd)
-    publish()
+    updateNote(cmd.id, cmd)
   elseif op == "set_color" then
-    store.update(cmd.id, { color = cmd.color })
-    publish()
-  elseif op == "set_key" then
-    store.setKey(cmd.id, cmd.key)
-    publish()
+    updateNote(cmd.id, { color = cmd.color })
   elseif op == "remove" then
     removeNote(cmd.id)
   elseif op == "toggle_edit" then
     desk.toggleEditor()
   elseif op == "refresh" then
     refreshBoundKeys()
+  elseif op == "gather" then
+    gatherSheets()
   elseif op == "reload" then
     reload()
   end
-
-  noctalia.state.set("noctes.cmd", nil)
 end)
 
 -- For keybinds and scripts:
@@ -229,6 +304,8 @@ end)
 --   noctalia msg plugin remo/noctes:service all new ["text"]
 --   noctalia msg plugin remo/noctes:service all open <key>
 --   noctalia msg plugin remo/noctes:service all move
+--   noctalia msg plugin remo/noctes:service all stick <key>
+--   noctalia msg plugin remo/noctes:service all gather
 --   noctalia msg plugin remo/noctes:service all reload
 function onIpc(event, payload)
   if event == "desk" then
@@ -239,20 +316,36 @@ function onIpc(event, payload)
     ensureKey(noctalia.string.trim(payload or ""))
   elseif event == "move" then
     desk.toggleEditor()
+  elseif event == "stick" then
+    stickKey(noctalia.string.trim(payload or ""))
+  elseif event == "gather" then
+    gatherSheets()
   elseif event == "reload" then
     reload()
   end
 end
 
--- Settings changed: save_path may now point somewhere else, and the tilt switch
--- may have been flipped.
+-- A monitor came or went. A sheet bound to the connector that left is still in
+-- settings.toml and still bound to a note, and is drawn on nothing at all, so
+-- it comes to a screen that exists - and goes back when its own returns.
+function onOutputsChanged()
+  gatherSheets()
+end
+
+-- Settings changed. The host calls this in place, without restarting the
+-- service, for every change - each step of the opacity slider is one. Only a
+-- new save_path means reading the notes again; re-reading and republishing
+-- them for anything else would redraw every sheet on the desk for nothing.
 function onConfigChanged()
-  reload()
+  publishPrefs()
+  desk.syncTilt(tiltWanted())
+  if configuredPath() ~= savePath then
+    reload()
+  end
 end
 
 function update()
   store.flush()
-  publishPrefs()
 end
 
 function onExit()
@@ -262,5 +355,12 @@ end
 noctalia.setUpdateInterval(2000)
 
 select("")
-publish()
-reload()
+publishPrefs()
+desk.probe(function(ready)
+  publishValue("noctes.sheetsReady", ready)
+end)
+desk.syncTilt(tiltWanted())
+loadNotes()
+-- Once per start: adopt keyless sheets, and drop settings an older noctes left
+-- on its sheets, which the host would otherwise warn about on every load.
+tidySheets()

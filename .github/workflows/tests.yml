@@ -18,6 +18,11 @@ jobs:
           # is standard library from 3.11.
           python-version: '3.11'
 
+      - name: Install Lua 5.4
+        # Runs the plugin's Luau against tests/lua/host.lua. Without it those
+        # tests skip rather than fail, so CI installs it to make them count.
+        run: sudo apt-get update && sudo apt-get install -y lua5.4
+
       - name: Run the suite
         run: python3 tests/run
 

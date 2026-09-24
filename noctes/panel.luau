@@ -5,7 +5,7 @@
 -- One view: the editor. There was a list too, and it was in the way - the
 -- notes are already on screen, and picking one means clicking it, not scrolling
 -- a second copy of the same wall. What the list did that the editor now does:
--- new, delete, and sticking a note that has no sheet.
+-- new and delete.
 --
 -- Edits are kept as a local draft and flushed to the service on a second-tick
 -- debounce, on close, and on Save, so typing never round-trips through state on
@@ -17,6 +17,9 @@ local FLUSH_AFTER_MS = 1200
 
 local notes = {}
 local boundKeys = {}
+-- Assumed until the service says otherwise: the probe answers a moment after
+-- the panel can already be open, and a hint that flickers is worse than late.
+local sheetsReady = true
 local themeColors = false
 local currentId = ""
 local draftTitle = ""
@@ -56,11 +59,26 @@ local function findNote(id)
   return nil
 end
 
--- Whatever the panel should be showing: the note that was clicked, or the most
--- recently touched one when the panel was opened from the bar with nothing
--- selected. notes arrives newest first.
+-- Keeps the editor on a note that exists. The one it showed can go out from
+-- under it - deleted here, or gone with a reload - and its drafts have to go
+-- with it: left behind, the inputs would show the old note's text under the
+-- next note's toolbar, and a Save that looked like it worked would write
+-- nowhere. With nothing selected it lands on the most recently touched note;
+-- notes arrives newest first.
+local function settle()
+  if currentId ~= "" and findNote(currentId) ~= nil then
+    return
+  end
+  local note = notes[1]
+  currentId = note ~= nil and note.id or ""
+  draftTitle = note ~= nil and (note.title or "") or ""
+  draftContent = note ~= nil and (note.content or "") or ""
+  dirty = false
+  pendingDelete = ""
+end
+
 local function currentNote()
-  return findNote(currentId) or notes[1]
+  return findNote(currentId)
 end
 
 -- `force` is the Save button. Autosave refuses to wipe a note that had text in
@@ -110,8 +128,17 @@ end
 
 -- New means new post-it: the service creates the note and its desktop widget
 -- together, then selects it, so the editor lands on the new sheet.
+--
+-- The open note rides along, so the new sheet lands on the screen that one is
+-- on. Without it the sheet follows the focused window instead, and clicking a
+-- sheet or the panel never moves window focus: it would land on whichever
+-- screen was last typed in.
 local function addPostit()
-  noctalia.state.set("noctes.cmd", { op = "spawn_widget" })
+  local note = currentNote()
+  noctalia.state.set("noctes.cmd", {
+    op = "spawn_widget",
+    near = note ~= nil and note.key or nil,
+  })
 end
 
 -- Hands the desk over to Noctalia's widget editor, which is the only thing that
@@ -122,19 +149,19 @@ local function moveMode()
   panel.close()
 end
 
--- For a note with no sheet of its own: one made before the widget existed, or
--- one whose post-it was deleted from the widget editor.
-local function stickNote(id)
-  noctalia.state.set("noctes.cmd", { op = "stick", id = id })
-end
-
 local function removeNote(id)
-  if currentId == id then
-    dirty = false
-    currentId = ""
-  end
   noctalia.state.set("noctes.cmd", { op = "remove", id = id })
+  -- Out of the local copy now rather than when the service republishes, so the
+  -- editor settles on a note that is staying, not on this one for a moment.
+  local kept = {}
+  for _, note in ipairs(notes) do
+    if note.id ~= id then
+      table.insert(kept, note)
+    end
+  end
+  notes = kept
   pendingDelete = ""
+  settle()
   render()
 end
 
@@ -208,26 +235,17 @@ local function toolbar(note)
   local screen = stuckOn(note)
 
   return ui.row({ gap = 6, align = "center" }, {
-    -- Where this sheet is. Blank when it is on a screen, because that is the
+    -- Where this sheet is. Quiet when it is on a screen, because that is the
     -- normal case and a badge for it would be noise; loud when it is not,
-    -- because that is the one worth acting on.
+    -- because that is the one worth knowing about. A label, not a button: a
+    -- note without a sheet gets one back through the `stick` IPC event.
     ui.label({
-      text = screen ~= nil and screen or noctalia.tr("panel.not_on_screen"),
+      text = screen ~= nil and screen
+        or (sheetsReady and noctalia.tr("panel.not_on_screen") or noctalia.tr("panel.no_helper")),
       fontSize = 10,
       color = screen ~= nil and "on_surface/0.45" or "primary",
       flexGrow = 1,
       maxLines = 1,
-    }),
-    ui.button({
-      key = "stick-" .. note.id,
-      glyph = "layout-board",
-      variant = "secondary",
-      controlSize = "sm",
-      visible = screen == nil,
-      tooltip = noctalia.tr("panel.stick"),
-      onClick = function()
-        stickNote(note.id)
-      end,
     }),
     ui.button({
       glyph = "settings",
@@ -352,6 +370,7 @@ end
 
 noctalia.state.watch("noctes.notes", function(value)
   notes = type(value) == "table" and value or {}
+  settle()
   render()
 end)
 
@@ -360,8 +379,23 @@ noctalia.state.watch("noctes.boundKeys", function(value)
   render()
 end)
 
+-- The host wakes a watcher on every set, changed or not, so these two check
+-- before paying for a render.
 noctalia.state.watch("noctes.themeColors", function(value)
-  themeColors = value == true
+  local next = value == true
+  if next == themeColors then
+    return
+  end
+  themeColors = next
+  render()
+end)
+
+noctalia.state.watch("noctes.sheetsReady", function(value)
+  local next = value ~= false
+  if next == sheetsReady then
+    return
+  end
+  sheetsReady = next
   render()
 end)
 
@@ -381,18 +415,18 @@ function onOpen()
   local wanted = noctalia.state.get("noctes.editing")
   if type(wanted) == "string" and wanted ~= "" then
     openNote(wanted)
-    return
   end
+  settle()
 
-  -- Opened from the bar with nothing selected: seed the drafts from whatever
-  -- currentNote settles on, or the inputs would show the previous note's text.
+  -- The drafts outlive a close. Whatever changed the note since - a reload, an
+  -- IPC edit - is what the editor should open on, unless there is typing of
+  -- its own still waiting to be saved.
   local note = currentNote()
-  if note ~= nil and note.id ~= currentId then
-    currentId = ""
-    openNote(note.id)
-  else
-    render()
+  if note ~= nil and not dirty then
+    draftTitle = note.title or ""
+    draftContent = note.content or ""
   end
+  render()
 end
 
 function onClose()
@@ -417,6 +451,8 @@ local initial = noctalia.state.get("noctes.notes")
 notes = type(initial) == "table" and initial or {}
 local initialBound = noctalia.state.get("noctes.boundKeys")
 boundKeys = type(initialBound) == "table" and initialBound or {}
+sheetsReady = noctalia.state.get("noctes.sheetsReady") ~= false
 themeColors = noctalia.state.get("noctes.themeColors") == true
 noctalia.state.set("noctes.panelOpen", false)
+settle()
 render()

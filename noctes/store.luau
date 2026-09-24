@@ -10,11 +10,21 @@ local colors = require("./colors.luau")
 
 local M = {}
 
+-- The shape written to disk: { version = 1, notes = { ... } }. Stamped so a
+-- later format can be told apart from this one by something that has to read
+-- both. A file with no version is this one, from before the stamp existed.
+local SCHEMA_VERSION = 1
+
 M.notes = {}
 M.ready = false
 
 local directory = nil
 local idCounter = 0
+
+-- False while notes.json could not be read and could not be moved out of the
+-- way either. Saving then would replace notes nobody has seen with the ones in
+-- memory, so nothing is written until a load succeeds.
+local writable = true
 
 -- Autosave fires about once a second while someone types, and each one would
 -- otherwise rewrite the whole file. Mutations mark the list dirty instead, and
@@ -45,9 +55,20 @@ local function newId()
   return string.format("%d-%d", math.floor(noctalia.nowMs()), idCounter)
 end
 
+-- updatedAt counts seconds, so two notes touched in the same second tie, and
+-- table.sort is not stable: without the tie-breaks they could trade places on
+-- any sort, and the note the panel falls back to would change under it.
 local function sortNotes()
   table.sort(M.notes, function(a, b)
-    return (a.updatedAt or 0) > (b.updatedAt or 0)
+    local au, bu = a.updatedAt or 0, b.updatedAt or 0
+    if au ~= bu then
+      return au > bu
+    end
+    local ac, bc = a.createdAt or 0, b.createdAt or 0
+    if ac ~= bc then
+      return ac > bc
+    end
+    return a.id > b.id
   end)
 end
 
@@ -80,14 +101,6 @@ function M.path()
   return directory .. "/notes.json"
 end
 
--- A sibling of notes.json, for the one bit of state that is not a note.
-function M.sidecar(name)
-  if directory == nil then
-    return nil
-  end
-  return directory .. "/" .. name
-end
-
 -- Resolves the directory from `save_path`, falling back to the plugin's own
 -- data directory, and creates it.
 function M.useDirectory()
@@ -107,19 +120,38 @@ function M.useDirectory()
   return dir
 end
 
-local function writeNow()
-  local path = M.path()
-  if path == nil then
-    return
-  end
-  local encoded, err = noctalia.json.encode({ notes = M.notes }, true)
+-- Writes land on a sibling temp file and are renamed over the real one, which
+-- is the one filesystem operation that either happens or does not. Writing in
+-- place is a truncate followed by a write, and anything that interrupts it -
+-- a crash, a full disk, the OOM killer - leaves half a JSON document where the
+-- notes used to be.
+local function writeJson(path, value)
+  local encoded, err = noctalia.json.encode(value, true)
   if encoded == nil then
     noctalia.log("noctes: encode failed: " .. tostring(err))
-    return
+    return false
   end
-  local ok, writeErr = noctalia.writeFile(path, encoded)
+
+  local temp = path .. ".tmp"
+  local ok, writeErr = noctalia.writeFile(temp, encoded)
   if not ok then
     noctalia.log("noctes: write failed: " .. tostring(writeErr))
+    return false
+  end
+
+  local renamed, renameErr = noctalia.renameFile(temp, path)
+  if not renamed then
+    noctalia.log("noctes: rename failed: " .. tostring(renameErr))
+    noctalia.removeFile(temp)
+    return false
+  end
+  return true
+end
+
+local function writeNow()
+  local path = M.path()
+  if path ~= nil and writable then
+    writeJson(path, { version = SCHEMA_VERSION, notes = M.notes })
   end
 end
 
@@ -130,51 +162,111 @@ function M.flush()
   end
 end
 
-function M.load(onDone)
+-- The note list out of the decoded file, whatever shape it is in: this format,
+-- the unversioned one that came before it, or a bare array from a hand-edited
+-- file. A version from the future is read the same way and logged - dropping
+-- notes because the stamp is unfamiliar is worse than ignoring a field.
+local function notesIn(decoded)
+  if type(decoded) ~= "table" then
+    return {}
+  end
+
+  local version = tonumber(decoded.version)
+  if version ~= nil and version > SCHEMA_VERSION then
+    noctalia.log("noctes: notes.json is version " .. tostring(version)
+      .. ", this plugin writes " .. tostring(SCHEMA_VERSION))
+  end
+
+  local list = type(decoded.notes) == "table" and decoded.notes or decoded
+  local notes = {}
+  if type(list) == "table" then
+    for _, raw in ipairs(list) do
+      local note = normalize(raw)
+      if note ~= nil then
+        table.insert(notes, note)
+      end
+    end
+  end
+  return notes
+end
+
+-- A crash between the temp file and the rename leaves the write behind and the
+-- real file untouched. With the real file gone as well, the temp one is the
+-- only copy of the notes there is, so it is adopted rather than swept up.
+local function recoverTemp(path)
+  local temp = path .. ".tmp"
+  if noctalia.fileExists(path) or not noctalia.fileExists(temp) then
+    return
+  end
+  if noctalia.renameFile(temp, path) then
+    noctalia.log("noctes: recovered notes from " .. temp)
+  end
+end
+
+-- A file that will not parse is moved aside rather than written over: it can
+-- be a hand edit one comma short, and the next save would replace every note
+-- in it with the list in memory - at startup, with nothing at all. The list in
+-- memory carries on and saves to a fresh notes.json; the old file waits beside
+-- it to be fixed.
+local function setAside(path, why)
+  noctalia.log("noctes: cannot read " .. path .. ": " .. tostring(why))
+  local aside = string.format("%s.unreadable-%d", path, os.time())
+  if noctalia.renameFile(path, aside) then
+    writable = true
+    saveDue = #M.notes > 0
+    return { path = aside, moved = true }
+  end
+  noctalia.log("noctes: cannot move it aside either; not saving until it loads")
+  writable = false
+  return { path = path, moved = false }
+end
+
+-- Reads notes.json, replacing the list in memory. Synchronous: the file is
+-- small, host calls do not count against the script's budget, and a read that
+-- finishes before the next command runs cannot lose an edit that arrived
+-- while it was in flight.
+--
+-- Returns nil, or { path, moved } when the file could not be read (see
+-- setAside) so the caller can say so.
+--
+-- A folder with no notes.json yet gets the list in memory written into it:
+-- switching `save_path` to an empty folder takes the notes along, and
+-- switching to one that has notes shows those.
+function M.load()
   -- Re-reading replaces the in-memory list, so anything still waiting on the
   -- debounce has to reach disk first or it is simply gone.
   M.flush()
+  M.ready = true
 
   local path = M.path()
-  local function finish()
-    M.ready = true
-    onDone()
+  if path == nil then
+    return nil
   end
 
-  if path == nil or not noctalia.fileExists(path) then
-    finish()
-    return
+  recoverTemp(path)
+
+  if not noctalia.fileExists(path) then
+    writable = true
+    saveDue = saveDue or #M.notes > 0
+    return nil
   end
 
-  noctalia.readFileAsync(path, function(contents, err)
-    if contents == nil then
-      noctalia.log("noctes: read failed: " .. tostring(err))
-      finish()
-      return
-    end
+  local contents, err = noctalia.readFile(path)
+  if contents == nil then
+    return setAside(path, err)
+  end
 
-    local decoded, decodeErr = noctalia.json.decode(contents)
-    if decoded == nil then
-      noctalia.log("noctes: decode failed: " .. tostring(decodeErr))
-      finish()
-      return
-    end
+  local decoded, decodeErr = noctalia.json.decode(contents)
+  -- Valid JSON that is not a table is not a note list either, and reading it
+  -- as an empty one would save that emptiness over it.
+  if type(decoded) ~= "table" then
+    return setAside(path, decodeErr or "not a note list")
+  end
 
-    -- Accepts both the wrapped shape this writes and a bare array, so a
-    -- hand-edited file stays loadable.
-    local list = type(decoded.notes) == "table" and decoded.notes or decoded
-    M.notes = {}
-    if type(list) == "table" then
-      for _, raw in ipairs(list) do
-        local note = normalize(raw)
-        if note ~= nil then
-          table.insert(M.notes, note)
-        end
-      end
-    end
-    sortNotes()
-    finish()
-  end)
+  writable = true
+  M.notes = notesIn(decoded)
+  sortNotes()
+  return nil
 end
 
 -- ── Queries ─────────────────────────────────────────────────────────────────
@@ -188,7 +280,11 @@ function M.byId(id)
   return nil
 end
 
+-- "" is what every note with no sheet holds, so it names no note in particular.
 function M.byKey(key)
+  if type(key) ~= "string" or key == "" then
+    return nil
+  end
   for _, note in ipairs(M.notes) do
     if (note.key or "") == key then
       return note
@@ -228,20 +324,31 @@ function M.add(fields)
   return note
 end
 
+-- Returns the note when something changed and nil when nothing did - a Save
+-- with no edit, a color picked twice. Then updatedAt stays, the list keeps its
+-- order, and nothing is written or published.
 function M.update(id, fields)
   local note = M.byId(id)
   if note == nil then
     return nil
   end
-  if type(fields.title) == "string" then
+  local changed = false
+  if type(fields.title) == "string" and fields.title ~= note.title then
     note.title = fields.title
+    changed = true
   end
-  if type(fields.content) == "string" then
+  if type(fields.content) == "string" and fields.content ~= note.content then
     note.content = fields.content
+    changed = true
   end
   -- An empty string clears the color back to automatic.
-  if type(fields.color) == "string" and (fields.color == "" or colors.isKnown(fields.color)) then
-    note.color = fields.color
+  local color = fields.color
+  if type(color) == "string" and color ~= note.color and (color == "" or colors.isKnown(color)) then
+    note.color = color
+    changed = true
+  end
+  if not changed then
+    return nil
   end
   note.updatedAt = os.time()
   sortNotes()
@@ -250,6 +357,7 @@ function M.update(id, fields)
 end
 
 -- Returns the key the note held, so the caller can take its sheet down too.
+-- Gone for good: a post-it is a post-it, and the delete button asks twice.
 function M.remove(id)
   local note, index = M.byId(id)
   if note == nil then
@@ -258,30 +366,6 @@ function M.remove(id)
   table.remove(M.notes, index)
   saveDue = true
   return note.key or ""
-end
-
--- A key binds a note to a sheet, so it has to stay unique: taking a key frees
--- it from whatever note held it before.
-function M.setKey(id, key)
-  local note = M.byId(id)
-  if note == nil or type(key) ~= "string" then
-    return nil
-  end
-  key = noctalia.string.trim(key)
-
-  if key ~= "" then
-    for _, other in ipairs(M.notes) do
-      if other.id ~= id and (other.key or "") == key then
-        other.key = ""
-      end
-    end
-  end
-
-  note.key = key
-  note.updatedAt = os.time()
-  sortNotes()
-  saveDue = true
-  return note
 end
 
 return M
