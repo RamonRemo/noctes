@@ -85,6 +85,12 @@ local function sameBound(a, b)
   return true
 end
 
+-- The panel has no keyboard-less way in: a sheet that creates a note has to
+-- hand it over for editing.
+local function select(id)
+  noctalia.state.set("noctes.editing", id)
+end
+
 local refreshBoundKeys
 
 -- A sheet added through Noctalia's widget editor arrives with no key, square
@@ -100,8 +106,75 @@ local function tidySheets()
   end
 end
 
+-- Deleting a sheet in Noctalia's widget editor deletes its note. A note is
+-- only ever reached through its sheet, so one whose sheet is gone is a note
+-- nobody can see again, and the post-it was deleted the way the host deletes
+-- one - the same as the panel's bin, which also takes both.
+--
+-- Only a sheet this machine has seen counts: see desk.remembered. And only
+-- one that is gone from widget_order as well as from its table, since a read
+-- that caught the file half-written lacks the tables at the end but still
+-- lists them up top.
+local function removeNoteOnly(id)
+  if store.remove(id) == nil then
+    return
+  end
+  publishNotes()
+  if noctalia.state.get("noctes.editing") == id then
+    select("")
+  end
+end
+
+local function forgetDeletedSheets(bound, listed)
+  local current = {}
+  for _, sheet in ipairs(bound) do
+    current[sheet.key] = sheet.id
+  end
+
+  local seen = desk.remembered()
+  local kept, gone, total = {}, {}, 0
+  for key, id in pairs(seen) do
+    total = total + 1
+    if current[key] == nil then
+      if listed[id] then
+        kept[key] = id
+      else
+        table.insert(gone, key)
+      end
+    end
+  end
+
+  -- Every sheet this machine knew, gone in one read, is not someone deleting
+  -- post-its in the editor: it is a reset or replaced settings.toml. The notes
+  -- stay, and what is forgotten is which sheets they had.
+  if #gone > 1 and #gone == total then
+    noctalia.log("noctes: every known sheet is gone at once; keeping their notes")
+    gone = {}
+  end
+
+  for _, key in ipairs(gone) do
+    local note = store.byKey(key)
+    if note ~= nil then
+      removeNoteOnly(note.id)
+    end
+  end
+
+  local changed = #gone > 0
+  for key, id in pairs(current) do
+    kept[key] = id
+    changed = changed or seen[key] ~= id
+  end
+  for key in pairs(seen) do
+    changed = changed or kept[key] == nil
+  end
+  if changed then
+    desk.remember(kept)
+  end
+end
+
 refreshBoundKeys = function(adopt)
-  desk.boundKeys(function(bound, loose)
+  desk.boundKeys(function(bound, loose, listed)
+    forgetDeletedSheets(bound, listed or {})
     if not sameBound(bound, boundKeys) then
       boundKeys = bound
       noctalia.state.set("noctes.boundKeys", boundKeys)
@@ -137,12 +210,6 @@ local function markBound(key, output)
   noctalia.state.set("noctes.boundKeys", boundKeys)
 end
 
--- The panel has no keyboard-less way in: a sheet that creates a note has to
--- hand it over for editing.
-local function select(id)
-  noctalia.state.set("noctes.editing", id)
-end
-
 -- ── Commands ────────────────────────────────────────────────────────────────
 
 local function addNote(fields)
@@ -158,19 +225,18 @@ local function updateNote(id, fields)
   end
 end
 
+-- The panel's bin: the note and its sheet together.
 local function removeNote(id)
-  local key = store.remove(id)
-  if key == nil then
+  local note = store.byId(id)
+  if note == nil then
     return
   end
+  local key = note.key or ""
+  removeNoteOnly(id)
   if key ~= "" then
     desk.remove(key, function()
       refreshBoundKeys()
     end)
-  end
-  publishNotes()
-  if noctalia.state.get("noctes.editing") == id then
-    select("")
   end
 end
 

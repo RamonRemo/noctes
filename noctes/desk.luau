@@ -155,24 +155,39 @@ end
 
 -- ── Reading the desk ────────────────────────────────────────────────────────
 
--- Every desktop widget in settings.toml as { type, output, key }, read line by
--- line the way the helper reads it: a table runs until the next line that
--- opens one, so a `[` inside a quoted value cannot cut it short.
+-- Every desktop widget in settings.toml as { id, type, output, key }, and the
+-- ids [desktop_widgets] widget_order lists, read line by line the way the
+-- helper reads the file: a table runs until the next line that opens one, so
+-- a `[` inside a quoted value cannot cut it short. widget_order comes on one
+-- line or wrapped over many, whichever toml++ chose.
 local function widgetsIn(contents)
-  local widgets, order = {}, {}
-  local current, section = nil, nil
+  local widgets, order, listed = {}, {}, {}
+  local current, section, collecting = nil, nil, false
 
   for line in string.gmatch(contents .. "\n", "([^\n]*)\n") do
-    if string.match(line, "^%s*%[") then
+    if collecting then
+      for id in string.gmatch(line, '"([^"]*)"') do
+        listed[id] = true
+      end
+      collecting = not string.find((string.gsub(line, '"[^"]*"', "")), "]", 1, true)
+    elseif string.match(line, "^%s*%[") then
       local id, rest = string.match(line, "^%s*%[desktop_widgets%.widget%.([%w%-]+)([%.%w]*)%]%s*$")
       current, section = nil, nil
-      if id ~= nil and (rest == "" or rest == ".settings") then
+      if string.match(line, "^%s*%[desktop_widgets%]%s*$") then
+        section = "desktop"
+      elseif id ~= nil and (rest == "" or rest == ".settings") then
         if widgets[id] == nil then
-          widgets[id] = {}
+          widgets[id] = { id = id }
           table.insert(order, id)
         end
         current, section = widgets[id], rest == "" and "body" or "settings"
       end
+    elseif section == "desktop" and string.match(line, "^%s*widget_order%s*=") then
+      local value = string.match(line, "=(.*)$")
+      for id in string.gmatch(value, '"([^"]*)"') do
+        listed[id] = true
+      end
+      collecting = not string.find((string.gsub(value, '"[^"]*"', "")), "]", 1, true)
     elseif current ~= nil then
       local name, value = string.match(line, '^%s*([%w_]+)%s*=%s*"([^"]*)"')
       if section == "body" and (name == "type" or name == "output") then
@@ -187,16 +202,16 @@ local function widgetsIn(contents)
   for _, id in ipairs(order) do
     table.insert(list, widgets[id])
   end
-  return list
+  return list, listed
 end
 
 -- Which keys actually have a sheet, and on which output. The panel needs this
 -- to tell a stuck note from a loose one, and a sheet on the other monitor is
 -- the usual reason a note looks like it exists nowhere.
 --
--- onResult also gets the number of sheets with no key at all. Those are the
--- ones Noctalia's own widget editor produces, since a plugin cannot fill in a
--- widget's settings as it is created.
+-- onResult also gets the number of sheets with no key at all - the ones
+-- Noctalia's own widget editor produces, since a plugin cannot fill in a
+-- widget's settings as it is created - and the set of ids widget_order lists.
 function M.boundKeys(onResult)
   noctalia.readFileAsync(noctalia.expandPath(SETTINGS_PATH), function(contents, err)
     if contents == nil then
@@ -204,19 +219,43 @@ function M.boundKeys(onResult)
       return
     end
 
+    local widgets, listed = widgetsIn(contents)
     local bound, loose = {}, 0
-    for _, widget in ipairs(widgetsIn(contents)) do
+    for _, widget in ipairs(widgets) do
       if widget.type == WIDGET_TYPE then
         if (widget.key or "") ~= "" then
-          table.insert(bound, { key = widget.key, output = widget.output or "?" })
+          table.insert(bound, { key = widget.key, output = widget.output or "?", id = widget.id })
         else
           loose = loose + 1
         end
       end
     end
 
-    onResult(bound, loose)
+    onResult(bound, loose, listed)
   end)
+end
+
+-- The sheets this machine has seen, key -> widget id. Machine-local like the
+-- tilt marker: a synced notes.json holds notes whose sheets live in another
+-- machine's settings.toml, and those were never here to be deleted.
+function M.remembered()
+  local path = localFile("sheets.json")
+  if path == nil or not noctalia.fileExists(path) then
+    return {}
+  end
+  local decoded = noctalia.json.decode(noctalia.readFile(path) or "")
+  return type(decoded) == "table" and decoded or {}
+end
+
+function M.remember(sheets)
+  local path = localFile("sheets.json")
+  if path == nil then
+    return
+  end
+  local encoded = noctalia.json.encode(sheets)
+  if encoded ~= nil then
+    noctalia.writeFile(path, encoded)
+  end
 end
 
 -- ── Changing the desk ───────────────────────────────────────────────────────

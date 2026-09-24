@@ -10,19 +10,37 @@ local PUBLISHED = {
   "noctes.paperOpacity", "noctes.sheetsReady", "noctes.editing",
 }
 
+-- One noctes sheet: its id, and its tables as Noctalia writes them.
 local function sheet(n, key, output)
   local id = string.format("desktop-widget-%016x", n)
-  return string.format(
-    '\n    [desktop_widgets.widget.%s]\n    output = "%s"\n    type = "remo/noctes:note"\n'
-      .. '\n        [desktop_widgets.widget.%s.settings]\n        background = false\n        key = "%s"\n',
-    id, output or "DP-2", id, key)
+  return {
+    id = id,
+    text = string.format(
+      '\n    [desktop_widgets.widget.%s]\n    output = "%s"\n    type = "remo/noctes:note"\n'
+        .. '\n        [desktop_widgets.widget.%s.settings]\n        background = false\n        key = "%s"\n',
+      id, output or "DP-2", id, key),
+  }
+end
+
+-- A settings.toml holding `sheets`, with `listed` in widget_order (all of
+-- them by default), on one line the way toml++ writes a short array.
+local function settingsWith(sheets, listed)
+  local ids, tables = {}, {}
+  for _, s in ipairs(listed or sheets) do
+    table.insert(ids, '"' .. s.id .. '"')
+  end
+  for _, s in ipairs(sheets) do
+    table.insert(tables, s.text)
+  end
+  return "[desktop_widgets]\nwidget_order = [ " .. table.concat(ids, ", ") .. " ]\n"
+    .. table.concat(tables) .. "\n[dock]\nenabled = true\n"
 end
 
 local function start(options)
   options = options or {}
   local host = T.new()
   host.files[NOTES] = T.json.encode({ version = 1, notes = options.notes or {} })
-  host.files[SETTINGS] = "[desktop_widgets]\nwidget_order = []\n" .. table.concat(options.sheets or {})
+  host.files[SETTINGS] = settingsWith(options.sheets or {})
   if options.notesFile ~= nil then
     host.files[NOTES] = options.notesFile
   end
@@ -208,6 +226,89 @@ T.test("gather passes the homes file", function()
   local host, service = start()
   host:call(service, "onOutputsChanged")
   T.eq(after(host:runsOf("gather")[1], "--homes"), "/data/homes.json", "homes path")
+end)
+
+-- ── Sheets deleted in the widget editor ─────────────────────────────────────
+
+local function titles(host)
+  local out = {}
+  for _, note in ipairs(host.state["noctes.notes"]) do
+    table.insert(out, note.title)
+  end
+  table.sort(out)
+  return table.concat(out, ",")
+end
+
+local TWO = {
+  { id = "a", key = "k1", title = "A", updatedAt = 2 },
+  { id = "b", key = "k2", title = "B", updatedAt = 1 },
+}
+
+T.test("a sheet deleted in the widget editor takes its note with it", function()
+  local one, two = sheet(1, "k1"), sheet(2, "k2")
+  local host = start({ notes = TWO, sheets = { one, two } })
+  host.files[SETTINGS] = settingsWith({ two })
+  host:set("noctes.cmd", { op = "refresh" })
+  T.eq(titles(host), "B", "notes left")
+end)
+
+T.test("the last sheet on the desk deleted takes its note too", function()
+  local host = start({ notes = { TWO[1] }, sheets = { sheet(1, "k1") } })
+  host.files[SETTINGS] = settingsWith({})
+  host:set("noctes.cmd", { op = "refresh" })
+  T.eq(titles(host), "", "no notes left")
+end)
+
+T.test("a sheet missing its table but still listed is a half-read file, not a deletion", function()
+  local one, two = sheet(1, "k1"), sheet(2, "k2")
+  local host = start({ notes = TWO, sheets = { one, two } })
+  host.files[SETTINGS] = settingsWith({ two }, { one, two })
+  host:set("noctes.cmd", { op = "refresh" })
+  T.eq(titles(host), "A,B", "both kept")
+
+  host.files[SETTINGS] = settingsWith({ two })
+  host:set("noctes.cmd", { op = "refresh" })
+  T.eq(titles(host), "B", "deleted once the order agrees")
+end)
+
+T.test("every known sheet gone at once keeps every note", function()
+  local host = start({ notes = TWO, sheets = { sheet(1, "k1"), sheet(2, "k2") } })
+  host.files[SETTINGS] = settingsWith({})
+  host:set("noctes.cmd", { op = "refresh" })
+  T.eq(titles(host), "A,B", "kept after the reset")
+
+  host.files[SETTINGS] = settingsWith({ sheet(3, "k3") })
+  host:set("noctes.cmd", { op = "refresh" })
+  T.eq(titles(host), "A,B", "still kept once a new sheet appears")
+end)
+
+T.test("a note whose sheet this machine never saw is left alone", function()
+  local notes = { TWO[1], { id = "c", key = "k9", title = "C", updatedAt = 0 } }
+  local host = start({ notes = notes, sheets = { sheet(1, "k1") } })
+  host:set("noctes.cmd", { op = "refresh" })
+  T.eq(titles(host), "A,C", "both kept")
+end)
+
+T.test("a sheet deleted while the shell was off is noticed at the next start", function()
+  local one, two = sheet(1, "k1"), sheet(2, "k2")
+  local first = start({ notes = TWO, sheets = { one, two } })
+  T.ok(first.files["/data/sheets.json"] ~= nil, "remembered on disk")
+
+  local host = T.new()
+  for path, contents in pairs(first.files) do
+    host.files[path] = contents
+  end
+  host.files[SETTINGS] = settingsWith({ two })
+  host:load("service.luau", { theme_colors = true, paper_opacity = 0.96, tilt = true, save_path = "" })
+  T.eq(titles(host), "B", "deleted at start")
+end)
+
+T.test("the panel's bin still takes note and sheet together", function()
+  local host = start({ notes = TWO, sheets = { sheet(1, "k1"), sheet(2, "k2") } })
+  host:set("noctes.cmd", { op = "remove", id = "a" })
+  T.eq(titles(host), "B", "note gone")
+  local removal = host:runsOf("remove")[1]
+  T.ok(removal ~= nil and after(removal, "--key") == "k1", "sheet removed by key")
 end)
 
 -- ── The tilt switch ─────────────────────────────────────────────────────────
