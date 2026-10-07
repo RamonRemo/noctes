@@ -224,10 +224,51 @@ T.test("startup adopts sheets without taking the notes' keys", function()
   T.ok(avoid:find("k1", 1, true) and avoid:find("k2", 1, true), "avoid holds both keys: " .. avoid)
 end)
 
+local function tick(host, service, times)
+  for _ = 1, times do
+    host:call(service, "update")
+  end
+end
+
 T.test("gather passes the homes file", function()
   local host, service = start()
   host:call(service, "onOutputsChanged")
+  tick(host, service, 2)
   T.eq(after(host:runsOf("gather")[1], "--homes"), "/data/homes.json", "homes path")
+end)
+
+-- A link that drops on lock: both outputs go, one comes back, then the other.
+-- Gathering on the first of those changes parks every sheet of the screen that
+-- is still on its way back.
+T.test("an output change gathers only once the outputs settle", function()
+  local host, service = start()
+  tick(host, service, 2)
+  local before = #host:runsOf("gather")
+
+  host:call(service, "onOutputsChanged")
+  tick(host, service, 1)
+  host:call(service, "onOutputsChanged")
+  host:call(service, "onOutputsChanged")
+  tick(host, service, 1)
+  T.eq(#host:runsOf("gather"), before, "gathers while outputs still change")
+
+  tick(host, service, 1)
+  T.eq(#host:runsOf("gather"), before + 1, "one gather once settled")
+  tick(host, service, 5)
+  T.eq(#host:runsOf("gather"), before + 1, "and no more after it")
+end)
+
+T.test("start gathers once the outputs settle", function()
+  local host, service = start()
+  T.eq(#host:runsOf("gather"), 0, "nothing gathered at load")
+  tick(host, service, 2)
+  T.eq(#host:runsOf("gather"), 1, "sheets parked by a previous run go home")
+end)
+
+T.test("gather over IPC does not wait", function()
+  local host, service = start()
+  host:call(service, "onIpc", "gather")
+  T.eq(#host:runsOf("gather"), 1, "ran at once")
 end)
 
 -- ── Sheets deleted in the widget editor ─────────────────────────────────────

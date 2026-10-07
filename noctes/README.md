@@ -215,7 +215,13 @@ output and leaves every other one where its owner put it.
 A connector also disappears for reasons that are not an unplug: a monitor
 switched off, a KVM switched away. So `gather` remembers where each sheet it
 moved was, in `homes.json` in the plugin's data directory, and when that output
-is connected again the sheets go back to exactly where they were. By hand:
+is connected again the sheets go back to exactly where they were.
+
+Nothing moves until the outputs have held still for a few seconds. Some
+monitors drop their link for a moment when the session locks, and the
+connectors come back one at a time; acting on the first change would park a
+whole screen of sheets on the other one. Each start also runs a settled
+`gather`, so a sheet parked by an earlier run still finds its way home. By hand:
 
 ```sh
 noctalia msg plugin remo/noctes:service all gather

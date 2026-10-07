@@ -4,7 +4,7 @@
 [[plugin]]
 id = "remo/noctes"
 name = "Noctes"
-version = "0.20.0"
+version = "0.20.1"
 updated_at = 1790220971
 added_at = 1790092241
 author = "remo"
